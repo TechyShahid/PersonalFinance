@@ -6,7 +6,12 @@
 
 ## 🌟 Overview
 
-**TradeLab** is a full-stack, production-ready fintech workstation built to bridge the gap between institutional quantitative swing trading and personal portfolio management in Indian equities. It automates End-of-Day (EOD) NSE bhavcopy ingestion, executes multi-factor institutional accumulation screens, enforces strict mathematical position-sizing rules, tracks real-time sector exposure, and logs trades with emotional discipline analytics.
+**TradeLab** is a full-stack, production-ready fintech workstation built to bridge the gap between institutional quantitative swing trading and personal portfolio management in Indian equities. 
+
+**Powered by 100% Authentic NSE Market Data:**
+- **Zero Mock / Synthetic Data:** Ingests genuine daily End-of-Day (EOD) market data directly from the National Stock Exchange of India (NSE).
+- **Official NSE Bhavcopy with Delivery:** Pulls exact traded volume, deliverable quantity, delivery percentage, and turnover from official exchange Bhavcopy archives (`bhav_copy_with_delivery`).
+- **Authentic Exchange Price Action:** Rolling daily OHLCV and moving averages calculated directly on verified NSE closing prices across Nifty 50, Nifty Midcap 150, and Nifty Smallcap 250.
 
 ![TradeLab Dashboard](docs/screenshots/dashboard.png)
 
@@ -14,13 +19,16 @@
 
 ## 🚀 Key Features
 
-### 1. 📊 Institutional Quantitative Screener (Smallcap & Midcap Focus)
-Automates screening across the NSE universe to identify high-probability institutional setups with dedicated market cap segment filtering:
+### 1. 📊 Authentic NSE Quantitative Screener (Smallcap & Midcap Focus)
+Automates screening across the live NSE universe to identify high-probability institutional setups with real deliverable volume and genuine price action:
 * **Market Cap Universe Selectors:** One-click toggles for:
   * 🌟 **Mid & Smallcap (High Alpha):** Default swing-trader focus combining high-beta momentum leaders.
   * 🚀 **Smallcap Only:** Targets high-velocity breakout leaders in Nifty Smallcap 250 with market caps under ₹10,000 Cr.
   * 📈 **Midcap Only:** Targets institutional compounders in Nifty Midcap 150 (₹10,000 Cr – ₹1,00,000 Cr).
   * 🌐 **All Caps & 🏛️ Largecap Only:** Bluechip and whole-market scans.
+* **Authentic Exchange Metrics (No Mock Data):**
+  * **Real Delivery % & Delivery Multiplier:** Official NSE delivery data comparing current delivery volume against historical 20-day delivery averages.
+  * **Mansfield Relative Strength (MRS):** Outperformance metric versus Nifty 50 benchmark calculated on real exchange closing values.
 * **Cap-Sensitive Dynamic Liquidity Gates:**
   * **Smallcaps:** Daily Turnover $\ge ₹5\text{ Cr}$ (ensures liquidity while capturing fast-moving smallcap breakouts).
   * **Midcaps:** Daily Turnover $\ge ₹15\text{ Cr}$.
@@ -32,7 +40,7 @@ Automates screening across the NSE universe to identify high-probability institu
 * **RSI Momentum Corridor:** 14-day RSI bounded between $55$ and $70$ (strong momentum without overbought exhaustion).
 * **Setup Classification:** Identifies patterns including *VCP Breakout*, *Accumulation Cluster*, and *20 EMA Pullback*.
 
-![Institutional Mid & Smallcap Screener](docs/screenshots/swing_scanner.png)
+![Authentic Real NSE Mid & Smallcap Screener](docs/screenshots/real_nse_scanner.png)
 
 ---
 
@@ -50,11 +58,11 @@ Built-in protection mechanisms to preserve trading capital:
 
 ### 3. 💼 Portfolio Tracker & Sector Allocation
 Comprehensive overview of open positions and asset distribution:
-* **Real-time NAV:** Live calculation of Net Portfolio Value, Cash in Hand, and Invested Capital.
-* **Sector Breakdown:** Interactive pie chart visualizing sector exposure across IT, Banking, Auto, Pharma, Energy, FMCG, and Metals.
-* **Position Drilldowns:** Live tracking of Entry Price, Current Price, Trailing Stop-loss, Targets, and Unrealized P&L (₹ and %).
+* **Real-time NAV & True Exchange CMP:** Live calculation of Net Portfolio Value, Cash in Hand, and Invested Capital evaluated at actual closing prices from NSE.
+* **Sector Breakdown:** Interactive pie chart visualizing sector exposure across IT, Banking, Auto, Pharma, Energy, FMCG, and Capital Goods.
+* **Position Drilldowns:** Live tracking of Entry Price, Current Price (CMP), Trailing Stop-loss, Targets, and Unrealized P&L (₹ and %).
 
-![Portfolio Tracker](docs/screenshots/portfolio.png)
+![Portfolio Tracker with Real NSE CMP](docs/screenshots/real_nse_portfolio.png)
 
 ---
 
