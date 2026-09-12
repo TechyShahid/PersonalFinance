@@ -47,8 +47,6 @@ export default function Dashboard() {
     { label: 'Satellite Cash', value: summary.satellite_cash, color: '#34d399' },
   ];
 
-  const latestFiiDii = fiiDii[0];
-
   return (
     <div className="animate-fade-in">
       <Header title="Dashboard" subtitle="Portfolio overview & market pulse" />

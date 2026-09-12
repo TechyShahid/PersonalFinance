@@ -28,8 +28,6 @@ export default function DonutChart({ segments, centerLabel, centerValue, size = 
     const innerRadius = radius * 0.65;
     const total = segments.reduce((sum, s) => sum + s.value, 0);
 
-    let startAngle = -Math.PI / 2;
-
     // Animated draw
     const animate = (progress: number) => {
       ctx.clearRect(0, 0, size, size);

@@ -35,7 +35,7 @@ export default function Sparkline({
 
   // Determine trend color
   const trendUp = data[data.length - 1] >= data[0];
-  const lineColor = trendUp ? '#10b981' : '#f43f5e';
+  const lineColor = color && color !== '#4f6cf7' ? color : (trendUp ? '#10b981' : '#f43f5e');
   const gradId = `spark-grad-${Math.random().toString(36).slice(2, 8)}`;
 
   return (

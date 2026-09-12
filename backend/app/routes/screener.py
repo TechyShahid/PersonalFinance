@@ -19,26 +19,27 @@ router = APIRouter(prefix="/api/screener", tags=["Screener"])
 def get_candidates(
     min_score: float = Query(default=0, ge=0, le=100),
     setup_type: Optional[str] = Query(default=None),
+    cap_category: Optional[str] = Query(default="MID_SMALL"),  # MID_SMALL | SMALLCAP | MIDCAP | LARGECAP | ALL
     sort_by: str = Query(default="score"),
     db: Session = Depends(get_db),
 ):
-    """Get today's screened swing candidates."""
+    """Get today's screened swing candidates, supporting Smallcap & Midcap filtering."""
     today = date.today()
     results = get_screening_results(
-        db, scan_date=today, min_score=min_score, setup_type=setup_type
+        db, scan_date=today, min_score=min_score, setup_type=setup_type, cap_category=cap_category
     )
 
     if not results:
         # Try yesterday if today's scan hasn't run
         yesterday = today - timedelta(days=1)
         results = get_screening_results(
-            db, scan_date=yesterday, min_score=min_score, setup_type=setup_type
+            db, scan_date=yesterday, min_score=min_score, setup_type=setup_type, cap_category=cap_category
         )
 
     # If still no results, try the most recent scan date
     if not results:
         results = get_screening_results(
-            db, min_score=min_score, setup_type=setup_type
+            db, min_score=min_score, setup_type=setup_type, cap_category=cap_category
         )
 
     # Sort

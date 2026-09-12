@@ -14,17 +14,25 @@
 
 ## 🚀 Key Features
 
-### 1. 📊 Institutional Quantitative Screener
-Automates screening across the NSE universe to identify high-probability institutional setups:
-* **Liquidity Gate:** Filters for stocks with Daily Turnover $\ge ₹30\text{ Cr}$ ($\text{Daily Volume} \times \text{VWAP}$).
+### 1. 📊 Institutional Quantitative Screener (Smallcap & Midcap Focus)
+Automates screening across the NSE universe to identify high-probability institutional setups with dedicated market cap segment filtering:
+* **Market Cap Universe Selectors:** One-click toggles for:
+  * 🌟 **Mid & Smallcap (High Alpha):** Default swing-trader focus combining high-beta momentum leaders.
+  * 🚀 **Smallcap Only:** Targets high-velocity breakout leaders in Nifty Smallcap 250 with market caps under ₹10,000 Cr.
+  * 📈 **Midcap Only:** Targets institutional compounders in Nifty Midcap 150 (₹10,000 Cr – ₹1,00,000 Cr).
+  * 🌐 **All Caps & 🏛️ Largecap Only:** Bluechip and whole-market scans.
+* **Cap-Sensitive Dynamic Liquidity Gates:**
+  * **Smallcaps:** Daily Turnover $\ge ₹5\text{ Cr}$ (ensures liquidity while capturing fast-moving smallcap breakouts).
+  * **Midcaps:** Daily Turnover $\ge ₹15\text{ Cr}$.
+  * **Largecaps:** Daily Turnover $\ge ₹30\text{ Cr}$.
 * **52-Week High Proximity:** Candidates trading within $15\%$ of their 52-week highs.
 * **Volume Footprint & Delivery %:** Volume $\ge 1.5\times$ 50-day SMA with Delivery % $\ge 50\%$, indicating authentic institutional accumulation rather than intraday churning.
 * **Trend Structure:** 50-day EMA strictly above 200-day EMA (Bullish Trend Filter).
 * **Volatility Contraction Pattern (VCP):** 10-day ATR / 50-day ATR $\le 0.70$, flagging volatility compression prior to explosive breakouts.
 * **RSI Momentum Corridor:** 14-day RSI bounded between $55$ and $70$ (strong momentum without overbought exhaustion).
-* **Setup Classification:** Identifies patterns including *VCP Breakout*, *Momentum Continuation*, *50 EMA Pullback*, and *Pocket Pivots*.
+* **Setup Classification:** Identifies patterns including *VCP Breakout*, *Accumulation Cluster*, and *20 EMA Pullback*.
 
-![Institutional Screener](docs/screenshots/swing_scanner.png)
+![Institutional Mid & Smallcap Screener](docs/screenshots/swing_scanner.png)
 
 ---
 

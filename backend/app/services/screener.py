@@ -21,8 +21,21 @@ from app.services.ingestion import (
 
 # ─── Screening Gate Functions ──────────────────────────────────────────────────
 
-def liquidity_gate(turnover_cr: float, threshold: float = 30.0) -> bool:
-    """Gate 1: Minimum daily turnover in crores."""
+def liquidity_gate(turnover_cr: float, cap_category: str = "MIDCAP", threshold: Optional[float] = None) -> bool:
+    """
+    Gate 1: Minimum daily turnover in crores.
+    Dynamic thresholds based on market cap:
+    - Smallcap: >= 5 Cr
+    - Midcap: >= 15 Cr
+    - Largecap: >= 30 Cr
+    """
+    if threshold is None:
+        if cap_category == "SMALLCAP":
+            threshold = 5.0
+        elif cap_category == "MIDCAP":
+            threshold = 15.0
+        else:
+            threshold = 30.0
     return turnover_cr >= threshold
 
 
@@ -324,6 +337,8 @@ def run_screening(db: Session, scan_date: Optional[date] = None) -> List[Screeni
     Execute the full multi-gate screening pipeline on all symbols.
     Returns scored candidates saved to the database.
     """
+    from app.seed import STOCK_UNIVERSE
+
     if scan_date is None:
         scan_date = date.today()
 
@@ -346,6 +361,11 @@ def run_screening(db: Session, scan_date: Optional[date] = None) -> List[Screeni
         if len(history) < 20:
             continue
 
+        stock_info = STOCK_UNIVERSE.get(symbol, {})
+        cap_category = stock_info.get("cap", "MIDCAP")
+        market_cap_cr = stock_info.get("mcap_cr", 10000.0)
+        sector = stock_info.get("sector", "Diversified")
+
         latest = history[-1]
         closes = [h.close_price for h in history]
         highs = [h.high_price for h in history]
@@ -362,8 +382,8 @@ def run_screening(db: Session, scan_date: Optional[date] = None) -> List[Screeni
         avg_delivery_20d = delivery_avgs[-1] if delivery_avgs else None
         avg_volume_20d = volume_avgs[-1] if volume_avgs else None
 
-        # ── Gate 1: Liquidity ──
-        liq_pass = liquidity_gate(latest.turnover_cr or 0)
+        # ── Gate 1: Dynamic Liquidity ──
+        liq_pass = liquidity_gate(latest.turnover_cr or 0, cap_category=cap_category)
 
         # ── Gate 2: Delivery Footprint ──
         del_pass = delivery_footprint_gate(
@@ -439,6 +459,9 @@ def run_screening(db: Session, scan_date: Optional[date] = None) -> List[Screeni
             stop_loss=rr["stop_loss"],
             target_price=rr["target_price"],
             rationale=rationale,
+            cap_category=cap_category,
+            market_cap_cr=market_cap_cr,
+            sector=sector,
             is_active=True,
         )
         db.add(result)
@@ -456,9 +479,10 @@ def get_screening_results(
     scan_date: Optional[date] = None,
     min_score: float = 0,
     setup_type: Optional[str] = None,
+    cap_category: Optional[str] = None,
     limit: int = 50,
 ) -> List[ScreeningResult]:
-    """Fetch screening results with optional filters."""
+    """Fetch screening results with optional market cap and setup filters."""
     query = db.query(ScreeningResult)
 
     if scan_date:
@@ -467,6 +491,15 @@ def get_screening_results(
         query = query.filter(ScreeningResult.composite_score >= min_score)
     if setup_type:
         query = query.filter(ScreeningResult.setup_type == setup_type)
+
+    # Market Cap segment filtering
+    if cap_category:
+        cap_clean = cap_category.upper().strip()
+        if cap_clean in ["MID_SMALL", "MID_AND_SMALL", "MIDSMALL"]:
+            query = query.filter(ScreeningResult.cap_category.in_(["MIDCAP", "SMALLCAP"]))
+        elif cap_clean in ["SMALLCAP", "MIDCAP", "LARGECAP"]:
+            query = query.filter(ScreeningResult.cap_category == cap_clean)
+        # If "ALL", no filter applied
 
     return (
         query.filter(ScreeningResult.is_active == True)

@@ -114,10 +114,14 @@ class ScreeningResult(Base):
     stop_loss = Column(Float, nullable=True)
     target_price = Column(Float, nullable=True)
     rationale = Column(Text, nullable=True)
+    cap_category = Column(String(20), nullable=True, default="MIDCAP", index=True)  # LARGECAP | MIDCAP | SMALLCAP
+    market_cap_cr = Column(Float, nullable=True)
+    sector = Column(String(50), nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
 
     __table_args__ = (
         UniqueConstraint("symbol", "scan_date", name="uix_screen_symbol_date"),
+        Index("ix_screen_cap_score", "cap_category", "composite_score"),
     )
 
 

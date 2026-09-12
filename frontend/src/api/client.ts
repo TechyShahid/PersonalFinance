@@ -30,10 +30,11 @@ export const dashboardAPI = {
 // ─── Screener ───────────────────────────────────────────────────────────────────
 
 export const screenerAPI = {
-  getCandidates: (params?: { min_score?: number; setup_type?: string; sort_by?: string }) => {
+  getCandidates: (params?: { min_score?: number; setup_type?: string; cap_category?: string; sort_by?: string }) => {
     const query = new URLSearchParams();
     if (params?.min_score) query.set('min_score', String(params.min_score));
     if (params?.setup_type) query.set('setup_type', params.setup_type);
+    if (params?.cap_category) query.set('cap_category', params.cap_category);
     if (params?.sort_by) query.set('sort_by', params.sort_by);
     return fetchAPI<ScreeningCandidate[]>(`/screener/candidates?${query}`);
   },
@@ -135,6 +136,9 @@ export interface ScreeningCandidate {
   stop_loss: number | null;
   target_price: number | null;
   rationale: string | null;
+  cap_category?: string;
+  market_cap_cr?: number;
+  sector?: string;
   is_active: boolean;
 }
 

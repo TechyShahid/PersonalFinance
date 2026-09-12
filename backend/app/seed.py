@@ -18,56 +18,79 @@ from app.services.ingestion import update_all_technicals
 # ─── NSE Stock Universe ────────────────────────────────────────────────────────
 
 STOCK_UNIVERSE = {
-    "RELIANCE":   {"base": 2950, "vol": 0.018, "avg_vol": 8500000,  "sector": "Oil & Gas"},
-    "TCS":        {"base": 3800, "vol": 0.015, "avg_vol": 3200000,  "sector": "IT"},
-    "INFY":       {"base": 1650, "vol": 0.017, "avg_vol": 7500000,  "sector": "IT"},
-    "HDFCBANK":   {"base": 1720, "vol": 0.014, "avg_vol": 9800000,  "sector": "Banking"},
-    "ICICIBANK":  {"base": 1280, "vol": 0.016, "avg_vol": 12000000, "sector": "Banking"},
-    "HINDUNILVR": {"base": 2480, "vol": 0.012, "avg_vol": 2800000,  "sector": "FMCG"},
-    "SBIN":       {"base": 820,  "vol": 0.020, "avg_vol": 18000000, "sector": "Banking"},
-    "BHARTIARTL": {"base": 1580, "vol": 0.016, "avg_vol": 5500000,  "sector": "Telecom"},
-    "KOTAKBANK":  {"base": 1950, "vol": 0.015, "avg_vol": 3800000,  "sector": "Banking"},
-    "ITC":        {"base": 465,  "vol": 0.014, "avg_vol": 14000000, "sector": "FMCG"},
-    "LT":         {"base": 3650, "vol": 0.018, "avg_vol": 2200000,  "sector": "Infra"},
-    "AXISBANK":   {"base": 1150, "vol": 0.019, "avg_vol": 10500000, "sector": "Banking"},
-    "WIPRO":      {"base": 520,  "vol": 0.017, "avg_vol": 8200000,  "sector": "IT"},
-    "BAJFINANCE": {"base": 6950, "vol": 0.022, "avg_vol": 2800000,  "sector": "NBFC"},
-    "MARUTI":     {"base": 12500,"vol": 0.016, "avg_vol": 850000,   "sector": "Auto"},
-    "SUNPHARMA":  {"base": 1720, "vol": 0.017, "avg_vol": 4200000,  "sector": "Pharma"},
-    "TATAMOTORS": {"base": 980,  "vol": 0.024, "avg_vol": 15000000, "sector": "Auto"},
-    "TITAN":      {"base": 3650, "vol": 0.018, "avg_vol": 2100000,  "sector": "Consumer"},
-    "ULTRACEMCO": {"base": 11200,"vol": 0.015, "avg_vol": 520000,   "sector": "Cement"},
-    "ASIANPAINT": {"base": 2920, "vol": 0.016, "avg_vol": 1800000,  "sector": "Consumer"},
-    "NESTLEIND":  {"base": 2480, "vol": 0.013, "avg_vol": 420000,   "sector": "FMCG"},
-    "HCLTECH":    {"base": 1680, "vol": 0.017, "avg_vol": 4800000,  "sector": "IT"},
-    "TECHM":      {"base": 1560, "vol": 0.020, "avg_vol": 3500000,  "sector": "IT"},
-    "POWERGRID":  {"base": 310,  "vol": 0.015, "avg_vol": 12000000, "sector": "Power"},
-    "NTPC":       {"base": 380,  "vol": 0.016, "avg_vol": 15000000, "sector": "Power"},
-    "TATASTEEL":  {"base": 155,  "vol": 0.025, "avg_vol": 25000000, "sector": "Metals"},
-    "COALINDIA":  {"base": 485,  "vol": 0.018, "avg_vol": 8500000,  "sector": "Mining"},
-    "ADANIENT":   {"base": 3200, "vol": 0.028, "avg_vol": 3200000,  "sector": "Infra"},
-    "ADANIPORTS": {"base": 1380, "vol": 0.022, "avg_vol": 4500000,  "sector": "Infra"},
-    "ONGC":       {"base": 275,  "vol": 0.019, "avg_vol": 16000000, "sector": "Oil & Gas"},
-    "JSWSTEEL":   {"base": 920,  "vol": 0.023, "avg_vol": 5500000,  "sector": "Metals"},
-    "DRREDDY":    {"base": 6200, "vol": 0.016, "avg_vol": 850000,   "sector": "Pharma"},
-    "CIPLA":      {"base": 1480, "vol": 0.017, "avg_vol": 3200000,  "sector": "Pharma"},
-    "DIVISLAB":   {"base": 4850, "vol": 0.019, "avg_vol": 680000,   "sector": "Pharma"},
-    "BPCL":       {"base": 610,  "vol": 0.020, "avg_vol": 7800000,  "sector": "Oil & Gas"},
-    "GRASIM":     {"base": 2650, "vol": 0.018, "avg_vol": 1200000,  "sector": "Cement"},
-    "BAJAJFINSV": {"base": 1720, "vol": 0.021, "avg_vol": 2100000,  "sector": "NBFC"},
-    "HEROMOTOCO": {"base": 5200, "vol": 0.017, "avg_vol": 850000,   "sector": "Auto"},
-    "EICHERMOT":  {"base": 4850, "vol": 0.018, "avg_vol": 620000,   "sector": "Auto"},
-    "INDUSINDBK": {"base": 1480, "vol": 0.023, "avg_vol": 5500000,  "sector": "Banking"},
-    "PIDILITIND": {"base": 3100, "vol": 0.014, "avg_vol": 550000,   "sector": "Chemicals"},
-    "TATACONSUM": {"base": 1150, "vol": 0.016, "avg_vol": 2800000,  "sector": "FMCG"},
-    "DABUR":      {"base": 580,  "vol": 0.014, "avg_vol": 3500000,  "sector": "FMCG"},
-    "HAVELLS":    {"base": 1680, "vol": 0.018, "avg_vol": 1200000,  "sector": "Consumer"},
-    "ZOMATO":     {"base": 255,  "vol": 0.028, "avg_vol": 22000000, "sector": "Tech"},
-    "PAYTM":      {"base": 850,  "vol": 0.032, "avg_vol": 8500000,  "sector": "Tech"},
-    "DMART":      {"base": 4200, "vol": 0.017, "avg_vol": 480000,   "sector": "Retail"},
-    "TRENT":      {"base": 6800, "vol": 0.025, "avg_vol": 1200000,  "sector": "Retail"},
-    "POLYCAB":    {"base": 6200, "vol": 0.020, "avg_vol": 420000,   "sector": "Electricals"},
-    "CUMMINSIND": {"base": 3400, "vol": 0.018, "avg_vol": 350000,   "sector": "Engineering"},
+    # ── Large Caps (Nifty 50 / Next 50) ──
+    "RELIANCE":   {"base": 2950, "vol": 0.018, "avg_vol": 8500000,  "sector": "Oil & Gas", "cap": "LARGECAP", "mcap_cr": 1980000},
+    "TCS":        {"base": 3800, "vol": 0.015, "avg_vol": 3200000,  "sector": "IT", "cap": "LARGECAP", "mcap_cr": 1380000},
+    "INFY":       {"base": 1650, "vol": 0.017, "avg_vol": 7500000,  "sector": "IT", "cap": "LARGECAP", "mcap_cr": 680000},
+    "HDFCBANK":   {"base": 1720, "vol": 0.014, "avg_vol": 9800000,  "sector": "Banking", "cap": "LARGECAP", "mcap_cr": 1310000},
+    "ICICIBANK":  {"base": 1280, "vol": 0.016, "avg_vol": 12000000, "sector": "Banking", "cap": "LARGECAP", "mcap_cr": 900000},
+    "HINDUNILVR": {"base": 2480, "vol": 0.012, "avg_vol": 2800000,  "sector": "FMCG", "cap": "LARGECAP", "mcap_cr": 580000},
+    "SBIN":       {"base": 820,  "vol": 0.020, "avg_vol": 18000000, "sector": "Banking", "cap": "LARGECAP", "mcap_cr": 730000},
+    "BHARTIARTL": {"base": 1580, "vol": 0.016, "avg_vol": 5500000,  "sector": "Telecom", "cap": "LARGECAP", "mcap_cr": 920000},
+    "KOTAKBANK":  {"base": 1950, "vol": 0.015, "avg_vol": 3800000,  "sector": "Banking", "cap": "LARGECAP", "mcap_cr": 385000},
+    "ITC":        {"base": 465,  "vol": 0.014, "avg_vol": 14000000, "sector": "FMCG", "cap": "LARGECAP", "mcap_cr": 580000},
+    "LT":         {"base": 3650, "vol": 0.018, "avg_vol": 2200000,  "sector": "Infra", "cap": "LARGECAP", "mcap_cr": 500000},
+    "AXISBANK":   {"base": 1150, "vol": 0.019, "avg_vol": 10500000, "sector": "Banking", "cap": "LARGECAP", "mcap_cr": 355000},
+    "WIPRO":      {"base": 520,  "vol": 0.017, "avg_vol": 8200000,  "sector": "IT", "cap": "LARGECAP", "mcap_cr": 270000},
+    "BAJFINANCE": {"base": 6950, "vol": 0.022, "avg_vol": 2800000,  "sector": "NBFC", "cap": "LARGECAP", "mcap_cr": 430000},
+    "MARUTI":     {"base": 12500,"vol": 0.016, "avg_vol": 850000,   "sector": "Auto", "cap": "LARGECAP", "mcap_cr": 390000},
+    "SUNPHARMA":  {"base": 1720, "vol": 0.017, "avg_vol": 4200000,  "sector": "Pharma", "cap": "LARGECAP", "mcap_cr": 412000},
+    "TATAMOTORS": {"base": 980,  "vol": 0.024, "avg_vol": 15000000, "sector": "Auto", "cap": "LARGECAP", "mcap_cr": 325000},
+    "TITAN":      {"base": 3650, "vol": 0.018, "avg_vol": 2100000,  "sector": "Consumer", "cap": "LARGECAP", "mcap_cr": 324000},
+    "ULTRACEMCO": {"base": 11200,"vol": 0.015, "avg_vol": 520000,   "sector": "Cement", "cap": "LARGECAP", "mcap_cr": 323000},
+    "ASIANPAINT": {"base": 2920, "vol": 0.016, "avg_vol": 1800000,  "sector": "Consumer", "cap": "LARGECAP", "mcap_cr": 280000},
+    "NESTLEIND":  {"base": 2480, "vol": 0.013, "avg_vol": 420000,   "sector": "FMCG", "cap": "LARGECAP", "mcap_cr": 239000},
+    "HCLTECH":    {"base": 1680, "vol": 0.017, "avg_vol": 4800000,  "sector": "IT", "cap": "LARGECAP", "mcap_cr": 455000},
+    "TECHM":      {"base": 1560, "vol": 0.020, "avg_vol": 3500000,  "sector": "IT", "cap": "LARGECAP", "mcap_cr": 153000},
+    "POWERGRID":  {"base": 310,  "vol": 0.015, "avg_vol": 12000000, "sector": "Power", "cap": "LARGECAP", "mcap_cr": 288000},
+    "NTPC":       {"base": 380,  "vol": 0.016, "avg_vol": 15000000, "sector": "Power", "cap": "LARGECAP", "mcap_cr": 368000},
+    "TATASTEEL":  {"base": 155,  "vol": 0.025, "avg_vol": 25000000, "sector": "Metals", "cap": "LARGECAP", "mcap_cr": 193000},
+    "COALINDIA":  {"base": 485,  "vol": 0.018, "avg_vol": 8500000,  "sector": "Mining", "cap": "LARGECAP", "mcap_cr": 298000},
+    "ADANIENT":   {"base": 3200, "vol": 0.028, "avg_vol": 3200000,  "sector": "Infra", "cap": "LARGECAP", "mcap_cr": 364000},
+    "ADANIPORTS": {"base": 1380, "vol": 0.022, "avg_vol": 4500000,  "sector": "Infra", "cap": "LARGECAP", "mcap_cr": 298000},
+    "ONGC":       {"base": 275,  "vol": 0.019, "avg_vol": 16000000, "sector": "Oil & Gas", "cap": "LARGECAP", "mcap_cr": 346000},
+    "JSWSTEEL":   {"base": 920,  "vol": 0.023, "avg_vol": 5500000,  "sector": "Metals", "cap": "LARGECAP", "mcap_cr": 225000},
+    "DRREDDY":    {"base": 6200, "vol": 0.016, "avg_vol": 850000,   "sector": "Pharma", "cap": "LARGECAP", "mcap_cr": 103000},
+    "CIPLA":      {"base": 1480, "vol": 0.017, "avg_vol": 3200000,  "sector": "Pharma", "cap": "LARGECAP", "mcap_cr": 119000},
+    "DIVISLAB":   {"base": 4850, "vol": 0.019, "avg_vol": 680000,   "sector": "Pharma", "cap": "LARGECAP", "mcap_cr": 128000},
+    "BPCL":       {"base": 610,  "vol": 0.020, "avg_vol": 7800000,  "sector": "Oil & Gas", "cap": "LARGECAP", "mcap_cr": 132000},
+    "GRASIM":     {"base": 2650, "vol": 0.018, "avg_vol": 1200000,  "sector": "Cement", "cap": "LARGECAP", "mcap_cr": 178000},
+    "BAJAJFINSV": {"base": 1720, "vol": 0.021, "avg_vol": 2100000,  "sector": "NBFC", "cap": "LARGECAP", "mcap_cr": 274000},
+    "HEROMOTOCO": {"base": 5200, "vol": 0.017, "avg_vol": 850000,   "sector": "Auto", "cap": "LARGECAP", "mcap_cr": 104000},
+    "EICHERMOT":  {"base": 4850, "vol": 0.018, "avg_vol": 620000,   "sector": "Auto", "cap": "LARGECAP", "mcap_cr": 132000},
+    "INDUSINDBK": {"base": 1480, "vol": 0.023, "avg_vol": 5500000,  "sector": "Banking", "cap": "LARGECAP", "mcap_cr": 115000},
+
+    # ── High-Momentum Mid Caps (Nifty Midcap 150) ──
+    "POLYCAB":    {"base": 6200, "vol": 0.022, "avg_vol": 620000,   "sector": "Electricals", "cap": "MIDCAP", "mcap_cr": 93000},
+    "TRENT":      {"base": 6800, "vol": 0.026, "avg_vol": 1400000,  "sector": "Retail", "cap": "MIDCAP", "mcap_cr": 88000},
+    "CUMMINSIND": {"base": 3400, "vol": 0.021, "avg_vol": 450000,   "sector": "Engineering", "cap": "MIDCAP", "mcap_cr": 47000},
+    "DIXON":      {"base": 11800,"vol": 0.028, "avg_vol": 550000,   "sector": "Electronics & EMS", "cap": "MIDCAP", "mcap_cr": 70500},
+    "PERSISTENT": {"base": 5200, "vol": 0.023, "avg_vol": 620000,   "sector": "IT", "cap": "MIDCAP", "mcap_cr": 40200},
+    "COFORGE":    {"base": 7400, "vol": 0.025, "avg_vol": 480000,   "sector": "IT", "cap": "MIDCAP", "mcap_cr": 45600},
+    "KAYNES":     {"base": 4950, "vol": 0.031, "avg_vol": 720000,   "sector": "Defense & EMS", "cap": "MIDCAP", "mcap_cr": 28900},
+    "SUZLON":     {"base": 76,   "vol": 0.035, "avg_vol": 38000000, "sector": "Renewable Energy", "cap": "MIDCAP", "mcap_cr": 42500},
+    "KPITTECH":   {"base": 1650, "vol": 0.026, "avg_vol": 1400000,  "sector": "Auto Tech", "cap": "MIDCAP", "mcap_cr": 33200},
+    "FEDERALBNK": {"base": 198,  "vol": 0.020, "avg_vol": 9200000,  "sector": "Banking", "cap": "MIDCAP", "mcap_cr": 48500},
+    "PRESTIGE":   {"base": 1820, "vol": 0.029, "avg_vol": 1200000,  "sector": "Real Estate", "cap": "MIDCAP", "mcap_cr": 36500},
+    "HAL":        {"base": 4650, "vol": 0.027, "avg_vol": 1600000,  "sector": "Defense & Aerospace", "cap": "MIDCAP", "mcap_cr": 99500},
+    "BEL":        {"base": 290,  "vol": 0.023, "avg_vol": 11000000, "sector": "Defense Electronics", "cap": "MIDCAP", "mcap_cr": 89000},
+    "BHEL":       {"base": 295,  "vol": 0.031, "avg_vol": 14000000, "sector": "Capital Goods", "cap": "MIDCAP", "mcap_cr": 53000},
+    "ZOMATO":     {"base": 260,  "vol": 0.029, "avg_vol": 24000000, "sector": "Tech", "cap": "MIDCAP", "mcap_cr": 81000},
+    "PAYTM":      {"base": 870,  "vol": 0.033, "avg_vol": 9200000,  "sector": "Tech", "cap": "MIDCAP", "mcap_cr": 23000},
+
+    # ── Explosive Small Caps (Nifty Smallcap 250 & Emerging Leaders) ──
+    "DATAPATTNS": {"base": 3050, "vol": 0.033, "avg_vol": 420000,   "sector": "Defense Electronics", "cap": "SMALLCAP", "mcap_cr": 8450},
+    "MAPMYINDIA": {"base": 2220, "vol": 0.030, "avg_vol": 320000,   "sector": "Tech & SaaS", "cap": "SMALLCAP", "mcap_cr": 5800},
+    "CENTURYPLY": {"base": 795,  "vol": 0.024, "avg_vol": 490000,   "sector": "Building Materials", "cap": "SMALLCAP", "mcap_cr": 7600},
+    "TEJASNET":   {"base": 1260, "vol": 0.034, "avg_vol": 580000,   "sector": "Telecom Equipment", "cap": "SMALLCAP", "mcap_cr": 10200},
+    "GRAVITA":    {"base": 1890, "vol": 0.032, "avg_vol": 380000,   "sector": "Recycling & Green Energy", "cap": "SMALLCAP", "mcap_cr": 6400},
+    "ELECON":     {"base": 1310, "vol": 0.029, "avg_vol": 450000,   "sector": "Industrial Machinery", "cap": "SMALLCAP", "mcap_cr": 7300},
+    "NEWGEN":     {"base": 1210, "vol": 0.031, "avg_vol": 430000,   "sector": "Enterprise Software", "cap": "SMALLCAP", "mcap_cr": 8600},
+    "ANANDRATHI": {"base": 3950, "vol": 0.028, "avg_vol": 280000,   "sector": "Wealth Management", "cap": "SMALLCAP", "mcap_cr": 7100},
+    "NEULANDLAB": {"base": 12800,"vol": 0.034, "avg_vol": 140000,   "sector": "Pharma & API", "cap": "SMALLCAP", "mcap_cr": 8100},
+    "TITAGARH":   {"base": 1490, "vol": 0.035, "avg_vol": 950000,   "sector": "Railways & Defense", "cap": "SMALLCAP", "mcap_cr": 9500},
+    "JWL":        {"base": 525,  "vol": 0.033, "avg_vol": 1400000,  "sector": "Railways & Logistics", "cap": "SMALLCAP", "mcap_cr": 8100},
+    "MARKSANS":   {"base": 255,  "vol": 0.030, "avg_vol": 2100000,  "sector": "Pharma", "cap": "SMALLCAP", "mcap_cr": 5100},
 }
 
 
@@ -383,55 +406,100 @@ def seed_screening_results(db: Session) -> None:
         return
 
     candidates = [
+        # Smallcaps
         {
-            "symbol": "TATAMOTORS", "score": 82.5, "setup": "VCP",
+            "symbol": "DATAPATTNS", "score": 88.5, "setup": "VCP",
+            "delivery": 63.4, "turnover": 14.8, "rr": 2.8,
+            "cap": "SMALLCAP", "mcap": 8450.0, "sector": "Defense Electronics",
+            "rationale": "[DATAPATTNS] Smallcap Institutional Footprint. Turnover ₹15Cr exceeds ₹5Cr liquidity threshold. Delivery 63.4% indicates heavy accumulation into tight consolidation. VCP Stage 3 contraction."
+        },
+        {
+            "symbol": "NEWGEN", "score": 84.1, "setup": "EMA_PULLBACK",
+            "delivery": 61.5, "turnover": 11.2, "rr": 2.6,
+            "cap": "SMALLCAP", "mcap": 8600.0, "sector": "Enterprise Software",
+            "rationale": "[NEWGEN] Quality Smallcap SaaS compounder. Dry pullback to 20-day EMA with turnover ₹11Cr. Low float absorption pattern confirmed."
+        },
+        {
+            "symbol": "TITAGARH", "score": 82.0, "setup": "ACCUMULATION",
+            "delivery": 67.2, "turnover": 18.5, "rr": 2.5,
+            "cap": "SMALLCAP", "mcap": 9500.0, "sector": "Railways & Defense",
+            "rationale": "[TITAGARH] High Delivery% (67.2%) multi-day cluster. Railway capex theme leader breaking out of base with surging volume."
+        },
+        {
+            "symbol": "MAPMYINDIA", "score": 79.4, "setup": "VCP",
+            "delivery": 58.9, "turnover": 9.8, "rr": 2.4,
+            "cap": "SMALLCAP", "mcap": 5800.0, "sector": "Tech & SaaS",
+            "rationale": "[MAPMYINDIA] High-margin geospatial tech leader. Turnover ₹10Cr with 58.9% delivery. Contracting daily ranges prior to pivot breakout."
+        },
+        {
+            "symbol": "ANANDRATHI", "score": 77.0, "setup": "EMA_PULLBACK",
+            "delivery": 56.4, "turnover": 8.5, "rr": 2.2,
+            "cap": "SMALLCAP", "mcap": 7100.0, "sector": "Wealth Management",
+            "rationale": "[ANANDRATHI] Financialization of Indian savings tailwind. Dry volume pullback to ascending 20-day EMA with 1:2.2 R:R."
+        },
+        {
+            "symbol": "ELECON", "score": 75.3, "setup": "ACCUMULATION",
+            "delivery": 62.1, "turnover": 12.4, "rr": 2.3,
+            "cap": "SMALLCAP", "mcap": 7300.0, "sector": "Industrial Machinery",
+            "rationale": "[ELECON] Capital goods & defense supplier. 5-day delivery accumulation cluster with 62.1% deliverable volume."
+        },
+
+        # Midcaps
+        {
+            "symbol": "KAYNES", "score": 86.4, "setup": "VCP",
+            "delivery": 66.8, "turnover": 42.5, "rr": 2.7,
+            "cap": "MIDCAP", "mcap": 28900.0, "sector": "Defense & EMS",
+            "rationale": "[KAYNES] High-beta Midcap EMS leader. Turnover ₹43Cr comfortably clears ₹15Cr midcap threshold. Delivery 66.8% showing massive institutional buying."
+        },
+        {
+            "symbol": "DIXON", "score": 83.2, "setup": "ACCUMULATION",
+            "delivery": 64.5, "turnover": 78.4, "rr": 2.5,
+            "cap": "MIDCAP", "mcap": 70500.0, "sector": "Electronics & EMS",
+            "rationale": "[DIXON] Electronics manufacturing leader. Quiet institutional accumulation cluster across 6 consecutive sessions with delivery >60%."
+        },
+        {
+            "symbol": "TRENT", "score": 81.5, "setup": "VCP",
+            "delivery": 71.8, "turnover": 185.6, "rr": 2.4,
+            "cap": "MIDCAP", "mcap": 88000.0, "sector": "Retail",
+            "rationale": "[TRENT] High-growth retail leader. Turnover ₹186Cr passes institutional liquidity gate. 71.8% delivery indicates relentless fund accumulation."
+        },
+        {
+            "symbol": "POLYCAB", "score": 76.2, "setup": "EMA_PULLBACK",
+            "delivery": 58.3, "turnover": 92.4, "rr": 2.1,
+            "cap": "MIDCAP", "mcap": 93000.0, "sector": "Electricals",
+            "rationale": "[POLYCAB] Wires & cables market leader. Textbook dry-volume pullback to 20-day EMA with excellent institutional sponsorship."
+        },
+        {
+            "symbol": "PERSISTENT", "score": 74.8, "setup": "ACCUMULATION",
+            "delivery": 61.2, "turnover": 65.0, "rr": 2.2,
+            "cap": "MIDCAP", "mcap": 40200.0, "sector": "IT",
+            "rationale": "[PERSISTENT] Top-tier Midcap IT outperformer. ₹65Cr turnover with 61.2% delivery, resilient against broader market swings."
+        },
+        {
+            "symbol": "SUZLON", "score": 73.5, "setup": "VCP",
+            "delivery": 59.4, "turnover": 125.0, "rr": 2.3,
+            "cap": "MIDCAP", "mcap": 42500.0, "sector": "Renewable Energy",
+            "rationale": "[SUZLON] Clean energy turnaround play. High liquidity ₹125Cr turnover with multi-week range contraction."
+        },
+
+        # Largecaps
+        {
+            "symbol": "TATAMOTORS", "score": 80.5, "setup": "VCP",
             "delivery": 68.2, "turnover": 485.3, "rr": 2.4,
-            "rationale": "[TATAMOTORS] Turnover ₹485Cr passes liquidity gate. Delivery 68.2% shows institutional interest. Strong green candle closing near high, above key EMAs. Patterns: VCP detected (score: 72)."
+            "cap": "LARGECAP", "mcap": 325000.0, "sector": "Auto",
+            "rationale": "[TATAMOTORS] Turnover ₹485Cr passes liquidity gate. Delivery 68.2% shows institutional interest. Patterns: VCP detected (score: 72)."
         },
         {
             "symbol": "BAJFINANCE", "score": 78.9, "setup": "ACCUMULATION",
             "delivery": 62.5, "turnover": 320.8, "rr": 2.1,
-            "rationale": "[BAJFINANCE] Turnover ₹321Cr passes liquidity gate. Delivery 62.5% shows institutional interest. Strong green candle. Patterns: Quiet accumulation cluster (score: 65)."
-        },
-        {
-            "symbol": "TRENT", "score": 75.2, "setup": "VCP",
-            "delivery": 71.8, "turnover": 185.6, "rr": 2.3,
-            "rationale": "[TRENT] Turnover ₹186Cr passes liquidity gate. Delivery 71.8% shows strong institutional interest. Patterns: VCP detected (score: 68); Near-term accumulation."
-        },
-        {
-            "symbol": "POLYCAB", "score": 72.1, "setup": "EMA_PULLBACK",
-            "delivery": 58.3, "turnover": 92.4, "rr": 2.0,
-            "rationale": "[POLYCAB] Turnover ₹92Cr passes liquidity gate. Delivery 58.3% adequate. Patterns: Dry pullback to 20 EMA (score: 60)."
+            "cap": "LARGECAP", "mcap": 430000.0, "sector": "NBFC",
+            "rationale": "[BAJFINANCE] Turnover ₹321Cr passes liquidity gate. Delivery 62.5% shows institutional interest. Strong green candle. Patterns: Quiet accumulation cluster."
         },
         {
             "symbol": "JSWSTEEL", "score": 70.8, "setup": "VCP",
             "delivery": 55.9, "turnover": 250.2, "rr": 2.2,
+            "cap": "LARGECAP", "mcap": 225000.0, "sector": "Metals",
             "rationale": "[JSWSTEEL] Turnover ₹250Cr passes liquidity gate. Delivery 55.9%. Patterns: VCP detected (score: 58)."
-        },
-        {
-            "symbol": "ADANIENT", "score": 68.5, "setup": "ACCUMULATION",
-            "delivery": 60.1, "turnover": 410.5, "rr": 1.9,
-            "rationale": "[ADANIENT] Turnover ₹411Cr passes liquidity gate. Delivery 60.1%. Patterns: Quiet accumulation cluster (score: 55)."
-        },
-        {
-            "symbol": "ZOMATO", "score": 66.3, "setup": "EMA_PULLBACK",
-            "delivery": 56.7, "turnover": 580.2, "rr": 2.0,
-            "rationale": "[ZOMATO] Turnover ₹580Cr passes liquidity gate. Delivery 56.7%. Patterns: Dry pullback to 20 EMA (score: 52)."
-        },
-        {
-            "symbol": "SBIN", "score": 64.2, "setup": "ACCUMULATION",
-            "delivery": 59.8, "turnover": 720.5, "rr": 1.8,
-            "rationale": "[SBIN] Turnover ₹721Cr passes liquidity gate. Delivery 59.8%. Patterns: Quiet accumulation cluster (score: 48)."
-        },
-        {
-            "symbol": "COALINDIA", "score": 62.0, "setup": "VCP",
-            "delivery": 57.2, "turnover": 195.3, "rr": 2.1,
-            "rationale": "[COALINDIA] Turnover ₹195Cr passes liquidity gate. Delivery 57.2%. Patterns: VCP detected (score: 45)."
-        },
-        {
-            "symbol": "CIPLA", "score": 58.5, "setup": "EMA_PULLBACK",
-            "delivery": 55.1, "turnover": 165.8, "rr": 2.0,
-            "rationale": "[CIPLA] Turnover ₹166Cr passes liquidity gate. Delivery 55.1%. Patterns: Dry pullback to 20 EMA (score: 42)."
         },
     ]
 
@@ -443,7 +511,8 @@ def seed_screening_results(db: Session) -> None:
             .first()
         )
 
-        entry = latest_eod.close_price if latest_eod else 1000.0
+        stock_info = STOCK_UNIVERSE.get(c["symbol"], {})
+        entry = latest_eod.close_price if latest_eod else float(stock_info.get("base", 1000.0))
         stop = round(entry * 0.95, 2)
         target = round(entry + 2 * (entry - stop), 2)
 
@@ -459,6 +528,9 @@ def seed_screening_results(db: Session) -> None:
             stop_loss=stop,
             target_price=target,
             rationale=c["rationale"],
+            cap_category=c.get("cap", stock_info.get("cap", "MIDCAP")),
+            market_cap_cr=c.get("mcap", stock_info.get("mcap_cr")),
+            sector=c.get("sector", stock_info.get("sector")),
             is_active=True,
         )
         db.add(result)

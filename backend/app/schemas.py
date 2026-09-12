@@ -98,6 +98,9 @@ class ScreeningCandidateResponse(BaseModel):
     stop_loss: Optional[float] = None
     target_price: Optional[float] = None
     rationale: Optional[str] = None
+    cap_category: Optional[str] = "MIDCAP"
+    market_cap_cr: Optional[float] = None
+    sector: Optional[str] = None
     is_active: bool = True
 
     class Config:
