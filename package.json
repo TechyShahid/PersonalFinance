@@ -1,0 +1,17 @@
+{
+  "name": "personal-finance-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Personal Finance & Automated Swing-Trading Platform for Indian Equity Markets",
+  "scripts": {
+    "backend": "cd backend && uvicorn app.main:app --reload --port 8000",
+    "frontend": "cd frontend && npm run dev",
+    "install:backend": "cd backend && pip install -r requirements.txt",
+    "install:frontend": "cd frontend && npm install",
+    "install:all": "npm run install:backend && npm run install:frontend",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}

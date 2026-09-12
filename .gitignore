@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+*/node_modules/
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Database & runtime files
+*.db
+*.sqlite3
+backend/data/*.db
+
+# Logs & temp
+*.log
+.DS_Store
+.env
+.env.local
+
+# Build output
+frontend/dist/
+dist/
