@@ -107,6 +107,30 @@ class ScreeningCandidateResponse(BaseModel):
         from_attributes = True
 
 
+class MidSmallSwingCandidateResponse(BaseModel):
+    symbol: str
+    company_name: str
+    market_cap_tier: str  # MIDCAP | SMALLCAP
+    market_cap_cr: float
+    sector: str
+    setup_type: str       # VCP | PULLBACK | BREAKOUT | ACCUMULATION
+    composite_score: float
+    delivery_multiple: float
+    delivery_pct: float
+    deliverable_value_cr: float
+    turnover_cr: float
+    adv_20d: int
+    relative_strength_score: float
+    rs_benchmark: str
+    pivot_price: float
+    entry_price: float
+    suggested_stop_loss: float
+    target_price: float
+    risk_reward_ratio: float
+    asm_gsm_stage: int = 0
+    rationale: str
+
+
 # ─── Trade Order Schemas ────────────────────────────────────────────────────────
 
 class TradeOrderCreate(BaseModel):

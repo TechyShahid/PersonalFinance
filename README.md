@@ -206,6 +206,7 @@ Or run them individually in separate terminals:
 | `GET` | `/api/health` | Backend health & database connectivity check |
 | `GET` | `/api/dashboard/summary` | Portfolio net worth, day change, FII/DII flow & quick stats |
 | `GET` | `/api/screener/candidates` | Filtered list of institutional swing candidates with setup score |
+| `GET` | `/api/v1/scanner/mid-small-swing` | Specialized Nifty Midcap 150 & Smallcap 250 quantitative scanner with Mansfield RS & delivery multiple |
 | `POST` | `/api/risk/calculate` | Calculate maximum shares & stop-loss with sector exposure check |
 | `GET` | `/api/portfolio/positions` | Active stock holdings & sector distribution breakdown |
 | `POST` | `/api/portfolio/positions` | Add or update a position |

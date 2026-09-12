@@ -43,6 +43,20 @@ export const screenerAPI = {
   runScan: () => fetchAPI<ScreeningCandidate[]>('/screener/run', { method: 'POST' }),
 };
 
+export const midSmallScannerAPI = {
+  getSwingCandidates: (params?: {
+    cap_type?: string;
+    setup?: string;
+    min_turnover_cr?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.cap_type) query.set('cap_type', params.cap_type);
+    if (params?.setup) query.set('setup', params.setup);
+    if (params?.min_turnover_cr !== undefined) query.set('min_turnover_cr', String(params.min_turnover_cr));
+    return fetchAPI<MidSmallSwingCandidate[]>(`/v1/scanner/mid-small-swing?${query}`);
+  },
+};
+
 // ─── Portfolio ──────────────────────────────────────────────────────────────────
 
 export const portfolioAPI = {
@@ -140,6 +154,30 @@ export interface ScreeningCandidate {
   market_cap_cr?: number;
   sector?: string;
   is_active: boolean;
+}
+
+export interface MidSmallSwingCandidate {
+  symbol: string;
+  company_name: string;
+  market_cap_tier: string;
+  market_cap_cr: number;
+  sector: string;
+  setup_type: string;
+  composite_score: number;
+  delivery_multiple: number;
+  delivery_pct: number;
+  deliverable_value_cr: number;
+  turnover_cr: number;
+  adv_20d: number;
+  relative_strength_score: number;
+  rs_benchmark: string;
+  pivot_price: number;
+  entry_price: number;
+  suggested_stop_loss: number;
+  target_price: number;
+  risk_reward_ratio: number;
+  asm_gsm_stage: number;
+  rationale: string;
 }
 
 export interface SparklineData {

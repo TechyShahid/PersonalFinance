@@ -104,31 +104,42 @@ def _generate_price_series(base_price: float, volatility: float, days: int, tren
     return prices
 
 
-def _generate_ohlcv(close_prices: list, avg_volume: int, volatility: float) -> list:
-    """Generate OHLCV data from close prices."""
+def _generate_ohlcv(close_prices: list, avg_volume: int, volatility: float, is_swing_setup: bool = True) -> list:
+    """Generate OHLCV data from close prices with institutional footprint."""
     records = []
+    total_len = len(close_prices)
     for i, close in enumerate(close_prices):
         # Generate intraday range
-        range_pct = random.uniform(0.008, volatility * 3)
+        range_pct = random.uniform(0.008, volatility * 2.5)
+        # Final sessions for swing setups contract volatility then surge
+        if is_swing_setup and (total_len - 5 <= i < total_len - 1):
+            range_pct = range_pct * 0.45  # Volatility Contraction
+
         half_range = close * range_pct / 2
 
-        high = round(close + random.uniform(0, half_range * 1.5), 2)
-        low = round(close - random.uniform(0, half_range * 1.5), 2)
+        high = round(close + random.uniform(0, half_range * 1.4), 2)
+        low = round(close - random.uniform(0, half_range * 1.4), 2)
         low = max(low, close * 0.92)  # Prevent unrealistic drops
 
-        # Open: within the range, biased toward close
-        open_price = round(low + random.uniform(0.3, 0.7) * (high - low), 2)
+        # On breakout session, close near high
+        if is_swing_setup and i == total_len - 1:
+            open_price = round(low + 0.2 * (high - low), 2)
+            close = round(high - 0.1 * (high - low), 2)
+        else:
+            open_price = round(low + random.uniform(0.3, 0.7) * (high - low), 2)
 
         # Volume with some variance
-        vol_multiplier = random.uniform(0.5, 2.0)
+        if is_swing_setup and i == total_len - 1:
+            vol_multiplier = random.uniform(2.0, 3.2)  # Institutional volume surge
+            base_delivery_pct = random.uniform(55, 78)  # High delivery
+        elif is_swing_setup and (total_len - 4 <= i < total_len - 1):
+            vol_multiplier = random.uniform(0.4, 0.7)  # Dry volume during contraction
+            base_delivery_pct = random.uniform(48, 65)
+        else:
+            vol_multiplier = random.uniform(0.6, 1.8)
+            base_delivery_pct = random.uniform(35, 62)
+
         volume = int(avg_volume * vol_multiplier)
-
-        # Delivery
-        base_delivery_pct = random.uniform(30, 65)
-        # Occasional high delivery days (institutional)
-        if random.random() < 0.15:
-            base_delivery_pct = random.uniform(60, 82)
-
         deliverable_qty = int(volume * base_delivery_pct / 100)
         avg_price = (high + low + close) / 3
         total_traded_value = volume * avg_price
@@ -176,14 +187,15 @@ def seed_eod_data(db: Session, days: int = 150) -> None:
     trading_dates = _get_trading_dates(start_date, days)
 
     for symbol, config in STOCK_UNIVERSE.items():
-        # Generate price series
-        trend = random.uniform(-0.0001, 0.0005)  # Slight upward bias
+        # Generate price series with strong stage 2 momentum for mid/small caps
+        is_swing = config.get("cap") in ["MIDCAP", "SMALLCAP"]
+        trend = random.uniform(0.0004, 0.0012) if is_swing else random.uniform(-0.0001, 0.0005)
         close_prices = _generate_price_series(
             config["base"], config["vol"], len(trading_dates), trend
         )
 
-        # Generate full OHLCV
-        ohlcv_data = _generate_ohlcv(close_prices, config["avg_vol"], config["vol"])
+        # Generate full OHLCV with institutional footprints
+        ohlcv_data = _generate_ohlcv(close_prices, config["avg_vol"], config["vol"], is_swing_setup=is_swing)
 
         # Insert into DB
         for i, trade_date in enumerate(trading_dates):
