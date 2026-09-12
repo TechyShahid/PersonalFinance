@@ -88,8 +88,8 @@ def detect_quiet_base_accumulation(
     breaks_resistance = c_today >= (max_h * 0.995)
 
     is_green_breakout = green_body_pct >= 2.8 and breaks_resistance
-    has_volume_surge = vol_multiple >= 3.2
-    has_high_delivery = d_pct_today >= 52.0
+    has_volume_surge = vol_multiple >= 3.0
+    has_high_delivery = d_pct_today >= 35.0
 
     is_qualified = is_tight_base and is_green_breakout and has_volume_surge and has_high_delivery
 
@@ -102,7 +102,7 @@ def detect_quiet_base_accumulation(
     }
 
     if is_qualified:
-        score = min(100.0, 75.0 + (vol_multiple * 2.5) + ((d_pct_today - 50.0) * 0.4))
+        score = min(100.0, 75.0 + (vol_multiple * 2.5) + ((d_pct_today - 30.0) * 0.4))
         return True, round(score, 1), round(max_h, 2), details
 
     return False, 0.0, round(max_h, 2), details
@@ -150,8 +150,8 @@ def detect_higher_low_reversal(
     # Dry volume on pullback / test
     dry_volume = vol_ratio <= 0.85
 
-    # Bullish rejection bar: closes in top 22% of session range
-    close_in_top = ((h_today - c_today) / day_range) <= 0.22
+    # Bullish rejection bar: closes in top 25% of session range
+    close_in_top = ((h_today - c_today) / day_range) <= 0.25
     green_or_hammer = c_today >= o_today or ((c_today - l_today) / day_range >= 0.65)
 
     is_qualified = tested_ema_support and dry_volume and close_in_top and green_or_hammer
@@ -306,104 +306,23 @@ def run_penny_swing_scan(
             .all()
         )
 
-        # Generate realistic calibrated simulation if DB records are sparse for this penny scrip
-        if len(eod_records) < 25:
-            base_p = 12.0 + (abs(hash(symbol)) % 25)  # Price between ₹12.00 and ₹37.00
-            daily_series = []
-            cur_p = base_p
+        # Require sufficient authentic historical bars from NSE
+        if len(eod_records) < 20:
+            continue
 
-            # Archetype A: Quiet Base Accumulation (URJA, FCSSOFT, SHRENIK, VIKASPROP)
-            # Archetype B: First Higher-Low Reversal (ORIENTALTL, SEPOWER, VARDHMAN, SALONA, MITTAL)
-            is_archetype_a = symbol in ["URJA", "FCSSOFT", "SHRENIK", "VIKASPROP"]
-
-            if is_archetype_a:
-                # 20 sessions in tight base (within 8-10% band) with declining volume
-                base_high = base_p * 1.07
-                base_low = base_p * 0.98
-                avg_base_vol = 1400000
-
-                for i in range(20):
-                    p_i = round(base_low + ((base_high - base_low) * ((i % 5) / 5.0)), 2)
-                    v_i = int(avg_base_vol * (1.1 - (i * 0.015)))  # Declining volume in base
-                    d_i = float(48.0 + (i % 8))
-                    daily_series.append({
-                        "open": round(p_i * 0.995, 2),
-                        "high": round(p_i * 1.01, 2),
-                        "low": round(p_i * 0.99, 2),
-                        "close": p_i,
-                        "volume": v_i,
-                        "delivery_pct": d_i,
-                        "turnover_cr": round((v_i * p_i) / 10000000.0, 2),
-                        "ema_20": round(base_p * 1.01, 2),
-                    })
-
-                # Day 21 (Trigger Day): Explosive breakout over base resistance on solid green body & high delivery
-                c_today = round(base_high * 1.045, 2)
-                o_today = round(base_high * 0.99, 2)
-                v_today = int(avg_base_vol * 3.8)  # 3.8x volume surge
-                d_today = 66.5                     # 66.5% delivery
-                daily_series.append({
-                    "open": o_today,
-                    "high": round(c_today * 1.01, 2),
-                    "low": round(o_today * 0.99, 2),
-                    "close": c_today,
-                    "volume": v_today,
-                    "delivery_pct": d_today,
-                    "turnover_cr": round((v_today * c_today) / 10000000.0, 2),
-                    "ema_20": round(base_p * 1.02, 2),
-                })
-            else:
-                # Archetype B: First Higher-Low Reversal (Post-Capitulation Recovery)
-                ema_val = round(base_p * 1.05, 2)
-                avg_vol = 1800000
-
-                # 20 sessions establishing higher low over 20 EMA
-                for i in range(20):
-                    p_i = round(base_p * (1.0 + (i * 0.004)), 2)
-                    v_i = int(avg_vol * (0.9 + ((i % 4) * 0.1)))
-                    d_i = float(52.0 + (i % 10))
-                    daily_series.append({
-                        "open": round(p_i * 0.99, 2),
-                        "high": round(p_i * 1.015, 2),
-                        "low": round(p_i * 0.985, 2),
-                        "close": p_i,
-                        "volume": v_i,
-                        "delivery_pct": d_i,
-                        "turnover_cr": round((v_i * p_i) / 10000000.0, 2),
-                        "ema_20": round(p_i * 0.98, 2),
-                    })
-
-                # Day 21 (Trigger Day): Tests 20 EMA support on dry volume, closes in top 15% of range
-                c_today = round(ema_val * 1.025, 2)
-                l_today = round(ema_val * 0.998, 2)  # Tests 20 EMA
-                h_today = round(c_today * 1.005, 2)
-                o_today = round(l_today * 1.008, 2)
-                v_today = int(avg_vol * 0.62)        # Dry volume (0.62x ADV)
-                d_today = 58.0
-                daily_series.append({
-                    "open": o_today,
-                    "high": h_today,
-                    "low": l_today,
-                    "close": c_today,
-                    "volume": v_today,
-                    "delivery_pct": d_today,
-                    "turnover_cr": round((v_today * c_today) / 10000000.0, 2),
-                    "ema_20": ema_val,
-                })
-        else:
-            daily_series = [
-                {
-                    "open": r.open_price,
-                    "high": r.high_price,
-                    "low": r.low_price,
-                    "close": r.close_price,
-                    "volume": r.total_traded_qty,
-                    "delivery_pct": r.delivery_pct or 50.0,
-                    "turnover_cr": r.turnover_cr or (r.total_traded_qty * r.close_price / 10000000.0),
-                    "ema_20": r.ema_20 or r.close_price,
-                }
-                for r in eod_records
-            ]
+        daily_series = [
+            {
+                "open": r.open_price,
+                "high": r.high_price,
+                "low": r.low_price,
+                "close": r.close_price,
+                "volume": r.total_traded_qty,
+                "delivery_pct": r.delivery_pct or 50.0,
+                "turnover_cr": r.turnover_cr or (r.total_traded_qty * r.close_price / 10000000.0),
+                "ema_20": r.ema_20 or r.close_price,
+            }
+            for r in eod_records
+        ]
 
         # Extract arrays
         closes = np.array([d["close"] for d in daily_series])

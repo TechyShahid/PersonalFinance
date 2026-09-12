@@ -84,46 +84,104 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
 
 @router.get("/performance", response_model=PerformanceResponse)
 def get_performance(days: int = 90, db: Session = Depends(get_db)):
-    """Get portfolio performance vs benchmarks over time."""
-    import random
+    """Get portfolio performance vs benchmarks over time using 100% genuine NSE EOD data."""
+    cutoff = date.today() - timedelta(days=int(days * 1.5))
 
-    end_date = date.today()
-    start_date = end_date - timedelta(days=days)
+    # 1. Fetch genuine benchmark closes
+    nifty_records = (
+        db.query(DailyEodData.trade_date, DailyEodData.close_price)
+        .filter(DailyEodData.symbol == "^NSEI", DailyEodData.trade_date >= cutoff)
+        .order_by(DailyEodData.trade_date.asc())
+        .all()
+    )
+    midcap_records = (
+        db.query(DailyEodData.trade_date, DailyEodData.close_price)
+        .filter(DailyEodData.symbol == "^NSEMDCP50", DailyEodData.trade_date >= cutoff)
+        .order_by(DailyEodData.trade_date.asc())
+        .all()
+    )
 
-    # Generate performance curve (synthetic for MVP)
+    nifty_by_date = {r[0]: r[1] for r in nifty_records}
+    midcap_by_date = {r[0]: r[1] for r in midcap_records}
+
+    # 2. Get user holdings and cash
+    user = db.query(User).first()
+    core = db.query(Portfolio).filter(Portfolio.user_id == user.id, Portfolio.portfolio_type == "CORE").first() if user else None
+    satellite = db.query(Portfolio).filter(Portfolio.user_id == user.id, Portfolio.portfolio_type == "SATELLITE").first() if user else None
+    total_cash = (core.cash_available if core else 0.0) + (satellite.cash_available if satellite else 0.0)
+
+    holdings = db.query(Holding).all()
+
+    # Pre-fetch historical prices for all held symbols
+    held_symbols = list(set([h.symbol for h in holdings]))
+    eod_holdings = (
+        db.query(DailyEodData.symbol, DailyEodData.trade_date, DailyEodData.close_price)
+        .filter(DailyEodData.symbol.in_(held_symbols), DailyEodData.trade_date >= cutoff)
+        .all()
+    ) if held_symbols else []
+
+    prices_by_sym_date: Dict[str, Dict[date, float]] = {}
+    for sym, td, cp in eod_holdings:
+        if sym not in prices_by_sym_date:
+            prices_by_sym_date[sym] = {}
+        prices_by_sym_date[sym][td] = cp
+
+    # All trading dates sorted
+    all_dates = sorted(list(set(nifty_by_date.keys()) | set(midcap_by_date.keys())))
+    if not all_dates:
+        raw_dates = db.query(DailyEodData.trade_date).filter(DailyEodData.trade_date >= cutoff).distinct().order_by(DailyEodData.trade_date.asc()).all()
+        all_dates = [r[0] for r in raw_dates]
+
+    if not all_dates:
+        return PerformanceResponse(
+            data=[],
+            portfolio_return_pct=0.0,
+            nifty_50_return_pct=0.0,
+            nifty_midcap_return_pct=0.0,
+        )
+
+    # Base values for normalization (base 100 for indices)
+    first_nifty = next((nifty_by_date[d] for d in all_dates if d in nifty_by_date and nifty_by_date[d] > 0), 24000.0)
+    first_midcap = next((midcap_by_date[d] for d in all_dates if d in midcap_by_date and midcap_by_date[d] > 0), 55000.0)
+
+    # Track forward-filled prices for holdings
+    last_known_price = {h.symbol: h.avg_buy_price for h in holdings}
+
     data_points = []
-    portfolio_base = 2500000.0
-    nifty_base = 100.0
-    midcap_base = 100.0
+    base_portfolio_val = None
 
-    current_date = start_date
-    portfolio_val = portfolio_base
-    nifty_val = nifty_base
-    midcap_val = midcap_base
+    for d in all_dates:
+        holding_val = 0.0
+        for h in holdings:
+            if h.symbol in prices_by_sym_date and d in prices_by_sym_date[h.symbol]:
+                last_known_price[h.symbol] = prices_by_sym_date[h.symbol][d]
+            holding_val += h.quantity * last_known_price.get(h.symbol, h.avg_buy_price)
 
-    while current_date <= end_date:
-        if current_date.weekday() < 5:  # Trading days
-            portfolio_val *= (1 + random.gauss(0.0008, 0.012))
-            nifty_val *= (1 + random.gauss(0.0005, 0.010))
-            midcap_val *= (1 + random.gauss(0.0006, 0.013))
+        current_portfolio_val = total_cash + holding_val
+        if base_portfolio_val is None:
+            base_portfolio_val = current_portfolio_val
 
-            data_points.append(PerformancePoint(
-                date=current_date,
-                portfolio_value=round(portfolio_val, 2),
-                nifty_50_value=round(nifty_val, 2),
-                nifty_midcap_150_value=round(midcap_val, 2),
-            ))
-        current_date += timedelta(days=1)
+        nifty_val = round((nifty_by_date.get(d, first_nifty) / first_nifty) * 100.0, 2)
+        midcap_val = round((midcap_by_date.get(d, first_midcap) / first_midcap) * 100.0, 2)
+
+        data_points.append(PerformancePoint(
+            date=d,
+            portfolio_value=round(current_portfolio_val, 2),
+            nifty_50_value=nifty_val,
+            nifty_midcap_150_value=midcap_val,
+        ))
 
     portfolio_return = round(
-        (data_points[-1].portfolio_value / portfolio_base - 1) * 100, 2
-    ) if data_points else 0
+        ((data_points[-1].portfolio_value / base_portfolio_val) - 1.0) * 100.0, 2
+    ) if base_portfolio_val and base_portfolio_val > 0 and data_points else 0.0
+
     nifty_return = round(
-        (data_points[-1].nifty_50_value / nifty_base - 1) * 100, 2
-    ) if data_points else 0
+        (data_points[-1].nifty_50_value / 100.0 - 1.0) * 100.0, 2
+    ) if data_points else 0.0
+
     midcap_return = round(
-        (data_points[-1].nifty_midcap_150_value / midcap_base - 1) * 100, 2
-    ) if data_points else 0
+        (data_points[-1].nifty_midcap_150_value / 100.0 - 1.0) * 100.0, 2
+    ) if data_points else 0.0
 
     return PerformanceResponse(
         data=data_points,

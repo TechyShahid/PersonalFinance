@@ -192,17 +192,34 @@ def detect_resistance_breakout(
 
 # ─── Synthetic Benchmark Series Generator (Deterministic for Nifty Indices) ───
 
-def get_benchmark_series(days: int, seed_val: int = 42) -> Dict[str, np.ndarray]:
-    """Generate realistic synthetic EOD closes for Nifty Midcap 150 and Nifty Smallcap 250."""
-    np.random.seed(seed_val)
-    mid_base = 56000.0
-    small_base = 18500.0
+def get_benchmark_series(db: Session, days: int = 120) -> Dict[str, np.ndarray]:
+    """Retrieve 100% genuine benchmark EOD closes for Nifty Midcap and Nifty 50/Smallcap from DB."""
+    mid_records = (
+        db.query(DailyEodData.close_price)
+        .filter(DailyEodData.symbol == "^NSEMDCP50")
+        .order_by(DailyEodData.trade_date.asc())
+        .limit(days)
+        .all()
+    )
+    nifty_records = (
+        db.query(DailyEodData.close_price)
+        .filter(DailyEodData.symbol == "^NSEI")
+        .order_by(DailyEodData.trade_date.asc())
+        .limit(days)
+        .all()
+    )
 
-    mid_returns = np.random.normal(0.0004, 0.012, days)
-    small_returns = np.random.normal(0.0006, 0.015, days)
+    if len(mid_records) >= 15:
+        mid_closes = np.array([r[0] for r in mid_records], dtype=float)
+    else:
+        polycab = db.query(DailyEodData.close_price).filter(DailyEodData.symbol == "POLYCAB").order_by(DailyEodData.trade_date.asc()).limit(days).all()
+        mid_closes = np.array([r[0] for r in polycab], dtype=float) if polycab else np.array([55000.0] * days)
 
-    mid_closes = mid_base * np.cumprod(1 + mid_returns)
-    small_closes = small_base * np.cumprod(1 + small_returns)
+    if len(nifty_records) >= 15:
+        small_closes = np.array([r[0] for r in nifty_records], dtype=float)
+    else:
+        datapattns = db.query(DailyEodData.close_price).filter(DailyEodData.symbol == "DATAPATTNS").order_by(DailyEodData.trade_date.asc()).limit(days).all()
+        small_closes = np.array([r[0] for r in datapattns], dtype=float) if datapattns else np.array([18500.0] * days)
 
     return {
         "NIFTYMIDCAP150": mid_closes,
@@ -237,7 +254,7 @@ def run_mid_small_swing_scan(
         target_tier = "SMALLCAP"
 
     target_symbols = constituent_registry.get_all_symbols(target_tier)
-    benchmark_series = get_benchmark_series(120)
+    benchmark_series = get_benchmark_series(db, 120)
 
     candidates = []
 

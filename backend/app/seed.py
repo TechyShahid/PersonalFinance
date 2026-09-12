@@ -591,16 +591,8 @@ def seed_fii_dii_data(db: Session, days: int = 30) -> None:
 
 
 def seed_all(db: Session) -> None:
-    """Run real NSE data ingestion pipeline."""
+    """Run real NSE data ingestion pipeline exclusively."""
     from app.services.real_market_ingestion import run_full_real_data_sync
-    try:
-        print("🌱 Ingesting 100% real NSE/BSE market data & official Bhavcopy...")
-        run_full_real_data_sync(db)
-        print("✅ Real NSE market data successfully populated!")
-    except Exception as e:
-        print(f"⚠️ Real market fetch encountered notice ({e}), falling back to cached historical data...")
-        seed_eod_data(db, days=150)
-        seed_demo_user(db)
-        seed_screening_results(db)
-        seed_fii_dii_data(db)
-        print("✅ Seed complete!")
+    print("🌱 Ingesting 100% real NSE/BSE market data & official Bhavcopy...")
+    run_full_real_data_sync(db)
+    print("✅ Real NSE market data successfully populated!")
