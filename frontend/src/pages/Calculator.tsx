@@ -70,9 +70,28 @@ export default function Calculator() {
     ? (((parseFloat(entry) - parseFloat(stop)) / parseFloat(entry)) * 100)
     : 0;
 
+  const isPennyTrade = searchParams.get('penny') === 'true' || (parseFloat(entry) > 0 && parseFloat(entry) <= 50);
+
   return (
     <div className="animate-fade-in">
       <Header title="Position Sizing Calculator" subtitle="ATR-based risk management & order sizing" />
+
+      {isPennyTrade && (
+        <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-yellow-950/40 via-navy-900 to-amber-950/30 border border-yellow-500/40 flex items-start gap-3.5 shadow-lg shadow-yellow-900/10">
+          <div className="text-2xl mt-0.5">⚠️</div>
+          <div className="text-xs leading-relaxed text-gray-300 w-full">
+            <div className="font-semibold text-yellow-300 mb-1 flex items-center justify-between">
+              <span>Penny Stock Position Guardrails Active (Price ≤ ₹50)</span>
+              <span className="px-2 py-0.5 text-[10px] rounded bg-yellow-500/20 text-yellow-300 font-mono border border-yellow-500/30">
+                CAP: 2.5% EQUITY
+              </span>
+            </div>
+            <p className="text-gray-400">
+              Penny stocks carry extreme circuit-lock and gap-down hazards. Enforce a maximum position size of <strong>2.0% - 2.5% of total portfolio equity</strong> (e.g. ₹62,500 max on a ₹25L book) and ensure total shares do not exceed <strong>5% of 20-day ADV</strong> for safe multi-day liquidation.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Input Panel */}

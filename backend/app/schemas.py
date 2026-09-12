@@ -131,6 +131,35 @@ class MidSmallSwingCandidateResponse(BaseModel):
     rationale: str
 
 
+class PennySwingCandidateResponse(BaseModel):
+    symbol: str
+    company_name: str
+    exchange: str                  # NSE | BSE
+    market_cap_cr: float
+    sector: str
+    price_band_pct: float          # 10.0 or 20.0
+    circuit_status: str            # NORMAL_TRADING
+    setup_type: str                # QUIET_BASE_ACCUMULATION | HIGHER_LOW_REVERSAL | ACCUMULATION_PULSE
+    composite_score: float
+    operator_risk_score: float     # 0 - 100
+    risk_classification: str       # LOW_RISK | MODERATE | ELEVATED
+    entry_price: float
+    suggested_stop_loss: float
+    target_price: float
+    risk_reward_ratio: float
+    volume_surge_multiple: float
+    delivery_pct: float
+    deliverable_value_cr: float
+    turnover_cr: float
+    trade_count: int
+    bid_ask_spread_pct: float
+    max_safe_shares: int
+    max_safe_capital: float
+    capital_pct: float
+    circuit_warning: str
+    rationale: str
+
+
 # ─── Trade Order Schemas ────────────────────────────────────────────────────────
 
 class TradeOrderCreate(BaseModel):

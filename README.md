@@ -44,7 +44,31 @@ Automates screening across the live NSE universe to identify high-probability in
 
 ---
 
-### 2. 🛡️ Risk Management & Position Sizing Engine
+### 2. ⚡ Specialized Penny Stock Swing Engine (Surveillance Gated & Anti-Pump)
+A specialized quantitative engine engineered to navigate the unique structural hazards of Indian penny stocks (lower-circuit traps, operator pump-and-dump churning, and SEBI surveillance measures):
+* **Universe & Operational Boundaries:**
+  * **Price Range:** Strictly bounded between ₹5.00 and ₹50.00 (eliminates sub-₹1 deep illiquid scrips).
+  * **Market Capitalization:** Full market cap under ₹500 Crore.
+  * **Exchange Segments:** NSE Primary (`EQ` series strictly) and BSE Regular (`A` / `B` groups).
+* **Hard Regulatory & Liquidity Survival Pre-Filters:**
+  * **Surveillance Exclusion:** Automated disqualification of scrips in **GSM (Stage 1–4)**, **ESM (Stage 1–2)**, or **Long-Term/Short-Term ASM**.
+  * **Circuit Band Guard:** Enforces minimum price bands of **10% or 20%**. Automatically discards **2% and 5% price bands** to prevent lower-circuit lock-in traps.
+  * **No Frozen Circuit Closes:** Discards scrips closed at Upper Circuit with zero ask volume (circuit locks); requires authentic two-way order book liquidity.
+  * **Liquidity & Spread Gates:** Daily Turnover $\ge ₹2.5\text{ Cr}$, Unique Trades $\ge 2,500$ trades/day, Bid-Ask Spread $\le 0.8\%$ of share price.
+* **Quantitative Penny Setups:**
+  * **Setup 1 (Quiet Base to High-Delivery Accumulation):** $\ge 20$-session horizontal consolidation within a 10%–12% band on declining volume, followed by a breakout on a solid green candle (`Close > Open` $\ge 3\%$), Volume $\ge 3.5\times$ 20-SMA, and Delivery $\% \ge 55\%$.
+  * **Setup 2 (First Higher-Low Reversal):** Post-capitulation bottoming, retest of 20 EMA / Fibonacci support on dry volume ($< 0.7\times$ ADV), closing in top 20% of session range.
+* **Operator Risk Score (0–100):**
+  * Proprietary pump-and-dump detection penalizing volume spikes lacking genuine deliverable spot buying, wide spreads, or circuit proximity.
+* **Dynamic Sizing & Risk Controls:**
+  * **Formula:** $\text{Shares} = \min\left(\frac{\text{Account Risk Limit}}{\text{Entry} - \text{Stop}}, \frac{0.05 \times \text{Daily Traded Volume}}{\text{Estimated Days to Exit}}\right)$.
+  * **Max Capital Cap:** Strictly capped at **2.0% – 2.5% of total portfolio equity** per penny trade with tight 5%–7% stop-loss mechanics.
+
+![Penny Stock Swing Engine](docs/screenshots/penny_swing_engine.png)
+
+---
+
+### 3. 🛡️ Risk Management & Position Sizing Engine
 Built-in protection mechanisms to preserve trading capital:
 * **Fixed Fractional Risk:** Caps risk at $1.0\% - 2.0\%$ of total portfolio equity per position.
 * **Asymmetric Risk/Reward:** Enforces minimum $1:2.5$ Risk-to-Reward ratio for all setups.
@@ -215,6 +239,7 @@ Or run them individually in separate terminals:
 | `GET` | `/api/dashboard/summary` | Portfolio net worth, day change, FII/DII flow & quick stats |
 | `GET` | `/api/screener/candidates` | Filtered list of institutional swing candidates with setup score |
 | `GET` | `/api/v1/scanner/mid-small-swing` | Specialized Nifty Midcap 150 & Smallcap 250 quantitative scanner with Mansfield RS & delivery multiple |
+| `GET` | `/api/v1/scanner/penny-swing` | Specialized Penny Stock Swing Scanner with surveillance gates, Operator Risk Score, and dynamic sizing |
 | `POST` | `/api/risk/calculate` | Calculate maximum shares & stop-loss with sector exposure check |
 | `GET` | `/api/portfolio/positions` | Active stock holdings & sector distribution breakdown |
 | `POST` | `/api/portfolio/positions` | Add or update a position |

@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import Header from '../components/layout/Header';
 import ScoreMeter from '../components/charts/ScoreMeter';
 import Sparkline from '../components/charts/Sparkline';
-import { midSmallScannerAPI, screenerAPI } from '../api/client';
-import type { MidSmallSwingCandidate, SparklineData } from '../api/client';
+import { midSmallScannerAPI, pennyScannerAPI, screenerAPI } from '../api/client';
+import type { MidSmallSwingCandidate, PennySwingCandidate, SparklineData } from '../api/client';
 import { useNavigate } from 'react-router-dom';
 
 const setupBadgeClass: Record<string, string> = {
@@ -11,6 +11,9 @@ const setupBadgeClass: Record<string, string> = {
   PULLBACK: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
   BREAKOUT: 'bg-purple-500/20 text-purple-300 border border-purple-500/30',
   ACCUMULATION: 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30',
+  QUIET_BASE_ACCUMULATION: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm shadow-emerald-500/20',
+  HIGHER_LOW_REVERSAL: 'bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-sm shadow-blue-500/20',
+  ACCUMULATION_PULSE: 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-500/20',
 };
 
 const setupLabel: Record<string, string> = {
@@ -18,6 +21,9 @@ const setupLabel: Record<string, string> = {
   PULLBACK: '20 EMA Pullback (±0.8% Test)',
   BREAKOUT: 'Resistance Breakout (≥2x Vol)',
   ACCUMULATION: 'Institutional Accumulation',
+  QUIET_BASE_ACCUMULATION: '⚡ Quiet Base Breakout (≥3.5x Vol, ≥55% Deliv)',
+  HIGHER_LOW_REVERSAL: '🔄 First Higher-Low Reversal (20 EMA Retest)',
+  ACCUMULATION_PULSE: '📦 Spot Delivery Accumulation Pulse',
 };
 
 const capBadgeConfig: Record<string, { label: string; class: string; glow: string }> = {
@@ -35,54 +41,96 @@ const capBadgeConfig: Record<string, { label: string; class: string; glow: strin
 
 export default function Scanner() {
   const [candidates, setCandidates] = useState<MidSmallSwingCandidate[]>([]);
+  const [pennyCandidates, setPennyCandidates] = useState<PennySwingCandidate[]>([]);
   const [sparklines, setSparklines] = useState<Record<string, number[]>>({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({
-    capType: 'all', // all | midcap | smallcap
-    setup: 'all',   // all | vcp | pullback | breakout
+    capType: 'all', // all | midcap | smallcap | penny
+    setup: 'all',   // all | vcp | pullback | breakout | quiet_base | reversal
+    exchange: 'all', // all | NSE | BSE (for penny)
     minTurnoverCr: 10,
-    sortBy: 'score', // score | rs | delivery | turnover
+    sortBy: 'score', // score | rs | delivery | turnover | operator_risk
   });
   const [scanning, setScanning] = useState(false);
   const navigate = useNavigate();
 
+  const isPennyMode = filter.capType === 'penny';
+
   const fetchCandidates = () => {
     setLoading(true);
-    midSmallScannerAPI
-      .getSwingCandidates({
-        cap_type: filter.capType,
-        setup: filter.setup,
-        min_turnover_cr: filter.minTurnoverCr,
-      })
-      .then((data) => {
-        // Client-side sorting
-        let sorted = [...data];
-        if (filter.sortBy === 'rs') {
-          sorted.sort((a, b) => b.relative_strength_score - a.relative_strength_score);
-        } else if (filter.sortBy === 'delivery') {
-          sorted.sort((a, b) => b.delivery_multiple - a.delivery_multiple);
-        } else if (filter.sortBy === 'turnover') {
-          sorted.sort((a, b) => b.turnover_cr - a.turnover_cr);
-        } else {
-          sorted.sort((a, b) => b.composite_score - a.composite_score);
-        }
-        setCandidates(sorted);
 
-        // Fetch sparklines for each candidate
-        data.forEach((c) => {
-          screenerAPI
-            .getSparkline(c.symbol, 20)
-            .then((spark) => {
-              setSparklines((prev) => ({
-                ...prev,
-                [c.symbol]: spark.map((s: SparklineData) => s.close_price),
-              }));
-            })
-            .catch(() => {});
-        });
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    if (filter.capType === 'penny') {
+      pennyScannerAPI
+        .getPennyCandidates({
+          exchange: filter.exchange,
+          setup: filter.setup,
+          min_turnover_cr: 2.5,
+        })
+        .then((data) => {
+          let sorted = [...data];
+          if (filter.sortBy === 'delivery') {
+            sorted.sort((a, b) => b.delivery_pct - a.delivery_pct);
+          } else if (filter.sortBy === 'turnover') {
+            sorted.sort((a, b) => b.turnover_cr - a.turnover_cr);
+          } else if (filter.sortBy === 'operator_risk') {
+            sorted.sort((a, b) => a.operator_risk_score - b.operator_risk_score); // Lowest risk first
+          } else {
+            sorted.sort((a, b) => b.composite_score - a.composite_score);
+          }
+          setPennyCandidates(sorted);
+
+          // Fetch sparklines for penny candidates
+          data.forEach((c) => {
+            screenerAPI
+              .getSparkline(c.symbol, 20)
+              .then((spark) => {
+                setSparklines((prev) => ({
+                  ...prev,
+                  [c.symbol]: spark.map((s: SparklineData) => s.close_price),
+                }));
+              })
+              .catch(() => {});
+          });
+        })
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    } else {
+      midSmallScannerAPI
+        .getSwingCandidates({
+          cap_type: filter.capType,
+          setup: filter.setup,
+          min_turnover_cr: filter.minTurnoverCr,
+        })
+        .then((data) => {
+          // Client-side sorting
+          let sorted = [...data];
+          if (filter.sortBy === 'rs') {
+            sorted.sort((a, b) => b.relative_strength_score - a.relative_strength_score);
+          } else if (filter.sortBy === 'delivery') {
+            sorted.sort((a, b) => b.delivery_multiple - a.delivery_multiple);
+          } else if (filter.sortBy === 'turnover') {
+            sorted.sort((a, b) => b.turnover_cr - a.turnover_cr);
+          } else {
+            sorted.sort((a, b) => b.composite_score - a.composite_score);
+          }
+          setCandidates(sorted);
+
+          // Fetch sparklines for each candidate
+          data.forEach((c) => {
+            screenerAPI
+              .getSparkline(c.symbol, 20)
+              .then((spark) => {
+                setSparklines((prev) => ({
+                  ...prev,
+                  [c.symbol]: spark.map((s: SparklineData) => s.close_price),
+                }));
+              })
+              .catch(() => {});
+          });
+        })
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    }
   };
 
   useEffect(() => {
@@ -100,11 +148,13 @@ export default function Scanner() {
       .finally(() => setScanning(false));
   };
 
-  const handleSizePosition = (candidate: MidSmallSwingCandidate) => {
+  const handleSizePosition = (candidate: MidSmallSwingCandidate | PennySwingCandidate) => {
+    const isPenny = 'operator_risk_score' in candidate;
     const params = new URLSearchParams({
       symbol: candidate.symbol,
       entry: String(candidate.entry_price || 0),
       stop: String(candidate.suggested_stop_loss || 0),
+      penny: isPenny ? 'true' : 'false',
     });
     navigate(`/calculator?${params}`);
   };
@@ -128,15 +178,17 @@ export default function Scanner() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-            Institutional Market Cap Universe:
+            Market Universe & Strategy Engine:
           </span>
           <span className="text-xs text-electric-400 font-mono">
-            Series EQ Only • ASM/GSM Stage 2+ Excluded • ADV ≥ 200k
+            {isPennyMode
+              ? 'Price ₹5 - ₹50 • MCap < ₹500Cr • 10%/20% Bands Only • GSM/ESM/ASM Excluded'
+              : 'Series EQ Only • ASM/GSM Stage 2+ Excluded • ADV ≥ 200k'}
           </span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <button
-            onClick={() => setFilter({ ...filter, capType: 'all' })}
+            onClick={() => setFilter({ ...filter, capType: 'all', setup: 'all' })}
             className={`px-4 py-3 rounded-xl text-xs font-semibold text-left transition-all duration-200 border flex flex-col justify-between ${
               filter.capType === 'all'
                 ? 'bg-gradient-to-r from-purple-900/50 via-navy-900 to-amber-900/50 border-amber-400/60 text-white shadow-lg shadow-amber-500/10 ring-1 ring-amber-400/40'
@@ -151,7 +203,7 @@ export default function Scanner() {
           </button>
 
           <button
-            onClick={() => setFilter({ ...filter, capType: 'smallcap' })}
+            onClick={() => setFilter({ ...filter, capType: 'smallcap', setup: 'all' })}
             className={`px-4 py-3 rounded-xl text-xs font-semibold text-left transition-all duration-200 border flex flex-col justify-between ${
               filter.capType === 'smallcap'
                 ? 'bg-amber-950/50 border-amber-500 text-white shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/40'
@@ -166,7 +218,7 @@ export default function Scanner() {
           </button>
 
           <button
-            onClick={() => setFilter({ ...filter, capType: 'midcap' })}
+            onClick={() => setFilter({ ...filter, capType: 'midcap', setup: 'all' })}
             className={`px-4 py-3 rounded-xl text-xs font-semibold text-left transition-all duration-200 border flex flex-col justify-between ${
               filter.capType === 'midcap'
                 ? 'bg-purple-950/50 border-purple-500 text-white shadow-lg shadow-purple-500/10 ring-1 ring-purple-500/40'
@@ -179,68 +231,159 @@ export default function Scanner() {
             </div>
             <span className="text-[11px] opacity-75">Nifty Midcap 150 institutional leaders</span>
           </button>
+
+          <button
+            onClick={() => setFilter({ ...filter, capType: 'penny', setup: 'all' })}
+            className={`px-4 py-3 rounded-xl text-xs font-semibold text-left transition-all duration-200 border flex flex-col justify-between ${
+              isPennyMode
+                ? 'bg-gradient-to-r from-yellow-950/60 via-navy-900 to-rose-950/60 border-yellow-400 text-white shadow-lg shadow-yellow-500/20 ring-1 ring-yellow-400/50'
+                : 'bg-navy-900/60 border-navy-700/60 text-gray-400 hover:text-white hover:border-navy-500'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-bold text-yellow-300 text-sm flex items-center gap-1">
+                <span>⚡ Penny Swing</span>
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300 font-mono font-bold">
+                ₹5 - ₹50
+              </span>
+            </div>
+            <span className="text-[11px] opacity-80 text-yellow-200/80">
+              Surveillance gated • 10%/20% bands • Anti-pump
+            </span>
+          </button>
         </div>
       </div>
 
-      {/* Quantitative Guardrails Banner */}
-      <div className="mb-6 p-4 rounded-xl bg-navy-900/90 border border-navy-700 flex items-start gap-3.5">
-        <div className="text-2xl mt-0.5">🛡️</div>
-        <div className="text-xs leading-relaxed text-gray-300">
-          <div className="font-semibold text-white mb-1 flex items-center gap-2">
-            Institutional Small/Midcap Swing Rules Active
-            <span className="px-2 py-0.5 text-[10px] rounded bg-emerald-500/20 text-emerald-300 font-mono">7:00 PM IST POST-BHAVCOPY</span>
-          </div>
-          <div className="text-gray-400 space-y-0.5">
-            <p>• <strong>Liquidity & Impact Cost:</strong> ADV ≥ 200k shares | Turnover ≥ ₹10 Cr (Smallcaps) / ₹25 Cr (Midcaps)</p>
-            <p>• <strong>Factor A & B:</strong> Delivery surge ≥ 1.8x 20-day SMA | Delivery % ≥ 45-60% | Close in top 25% of day range | Close &gt; 20 EMA &gt; 50 SMA</p>
-            <p>• <strong>Mansfield RS:</strong> 21-day rolling outperformance ratio vs respective Nifty Midcap 150 / Smallcap 250 benchmark</p>
+      {/* Guardrails Banner */}
+      {isPennyMode ? (
+        <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-amber-950/40 via-navy-900 to-rose-950/30 border border-amber-500/40 flex items-start gap-3.5 shadow-lg shadow-amber-900/10">
+          <div className="text-2xl mt-0.5">⚠️</div>
+          <div className="text-xs leading-relaxed text-gray-300 w-full">
+            <div className="font-semibold text-amber-300 mb-1 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                Penny Stock Surveillance & Operator Risk Protection Active
+                <span className="px-2 py-0.5 text-[10px] rounded bg-emerald-500/20 text-emerald-300 font-mono border border-emerald-500/30">
+                  SURVIVAL GATED
+                </span>
+              </span>
+              <span className="text-[11px] font-mono text-gray-400">Max Position Cap: 2.5% Equity</span>
+            </div>
+            <div className="text-gray-300 space-y-0.5">
+              <p>• <strong>Survival Filters:</strong> Strictly excludes GSM (Stage 1-4), ESM (Stage 1-2), and Long/Short ASM. Discards 2% &amp; 5% clamped price bands to prevent lower-circuit traps.</p>
+              <p>• <strong>Liquidity Gates:</strong> Daily Turnover ≥ ₹2.5 Cr | Trade Count ≥ 2,500 trades/day | Bid-Ask Spread ≤ 0.8% | Real two-way traded liquidity (no frozen upper-circuit locks).</p>
+              <p>• <strong>Dynamic Sizing:</strong> Shares = min(Account Risk / (Entry - Stop), 0.05 × Daily Volume / 2 Days Exit). Enforces hard 5%–7% stop-loss.</p>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="mb-6 p-4 rounded-xl bg-navy-900/90 border border-navy-700 flex items-start gap-3.5">
+          <div className="text-2xl mt-0.5">🛡️</div>
+          <div className="text-xs leading-relaxed text-gray-300">
+            <div className="font-semibold text-white mb-1 flex items-center gap-2">
+              Institutional Small/Midcap Swing Rules Active
+              <span className="px-2 py-0.5 text-[10px] rounded bg-emerald-500/20 text-emerald-300 font-mono">7:00 PM IST POST-BHAVCOPY</span>
+            </div>
+            <div className="text-gray-400 space-y-0.5">
+              <p>• <strong>Liquidity &amp; Impact Cost:</strong> ADV ≥ 200k shares | Turnover ≥ ₹10 Cr (Smallcaps) / ₹25 Cr (Midcaps)</p>
+              <p>• <strong>Factor A &amp; B:</strong> Delivery surge ≥ 1.8x 20-day SMA | Delivery % ≥ 45-60% | Close in top 25% of day range | Close &gt; 20 EMA &gt; 50 SMA</p>
+              <p>• <strong>Mansfield RS:</strong> 21-day rolling outperformance ratio vs respective Nifty Midcap 150 / Smallcap 250 benchmark</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filters Bar */}
       <div className="glass-card p-4 mb-6 flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-400">Pattern Setup:</label>
-          <select
-            value={filter.setup}
-            onChange={(e) => setFilter({ ...filter, setup: e.target.value })}
-            className="bg-navy-900 border border-navy-600 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-electric-500"
-          >
-            <option value="all">All Setups</option>
-            <option value="vcp">VCP (Volatility Contraction)</option>
-            <option value="pullback">20-EMA Mean Reversion (±0.8% Band)</option>
-            <option value="breakout">Resistance Breakout (≥2x Vol)</option>
-          </select>
-        </div>
+        {isPennyMode ? (
+          <>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-400">Exchange:</label>
+              <select
+                value={filter.exchange}
+                onChange={(e) => setFilter({ ...filter, exchange: e.target.value })}
+                className="bg-navy-900 border border-navy-600 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-yellow-400"
+              >
+                <option value="all">All Exchanges (NSE &amp; BSE)</option>
+                <option value="NSE">NSE Primary (EQ Only)</option>
+                <option value="BSE">BSE Regular (A/B Group)</option>
+              </select>
+            </div>
 
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-400">Sort By:</label>
-          <select
-            value={filter.sortBy}
-            onChange={(e) => setFilter({ ...filter, sortBy: e.target.value })}
-            className="bg-navy-900 border border-navy-600 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-electric-500"
-          >
-            <option value="score">Composite Score</option>
-            <option value="rs">Mansfield Relative Strength</option>
-            <option value="delivery">Delivery Multiple (Surge)</option>
-            <option value="turnover">Daily Turnover (₹ Cr)</option>
-          </select>
-        </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-400">Penny Setup:</label>
+              <select
+                value={filter.setup}
+                onChange={(e) => setFilter({ ...filter, setup: e.target.value })}
+                className="bg-navy-900 border border-navy-600 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-yellow-400"
+              >
+                <option value="all">All Penny Setups</option>
+                <option value="quiet_base">Quiet Base Accumulation (≥3.5x Vol)</option>
+                <option value="reversal">Higher-Low Reversal (20 EMA Retest)</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-400">Sort By:</label>
+              <select
+                value={filter.sortBy}
+                onChange={(e) => setFilter({ ...filter, sortBy: e.target.value })}
+                className="bg-navy-900 border border-navy-600 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-yellow-400"
+              >
+                <option value="score">Composite Setup Score</option>
+                <option value="operator_risk">Operator Risk (Safest First)</option>
+                <option value="delivery">Delivery %</option>
+                <option value="turnover">Daily Turnover (₹ Cr)</option>
+              </select>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-400">Pattern Setup:</label>
+              <select
+                value={filter.setup}
+                onChange={(e) => setFilter({ ...filter, setup: e.target.value })}
+                className="bg-navy-900 border border-navy-600 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-electric-500"
+              >
+                <option value="all">All Setups</option>
+                <option value="vcp">VCP (Volatility Contraction)</option>
+                <option value="pullback">20-EMA Mean Reversion (±0.8% Band)</option>
+                <option value="breakout">Resistance Breakout (≥2x Vol)</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-400">Sort By:</label>
+              <select
+                value={filter.sortBy}
+                onChange={(e) => setFilter({ ...filter, sortBy: e.target.value })}
+                className="bg-navy-900 border border-navy-600 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-electric-500"
+              >
+                <option value="score">Composite Score</option>
+                <option value="rs">Mansfield Relative Strength</option>
+                <option value="delivery">Delivery Multiple (Surge)</option>
+                <option value="turnover">Daily Turnover (₹ Cr)</option>
+              </select>
+            </div>
+          </>
+        )}
 
         <div className="ml-auto flex items-center gap-3">
           <span className="text-xs text-gray-400 font-mono">
-            <strong className="text-white">{candidates.length}</strong> qualified setups
+            <strong className="text-white">
+              {isPennyMode ? pennyCandidates.length : candidates.length}
+            </strong> qualified setups
           </span>
           <button
             onClick={handleRunScan}
             disabled={scanning}
-            className="btn-primary text-sm flex items-center gap-2"
+            className={`${isPennyMode ? 'bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black font-bold' : 'btn-primary'} text-sm px-4 py-2 rounded-lg flex items-center gap-2 transition-all`}
           >
             {scanning ? (
               <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Scanning NSE...
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                Scanning NSE/BSE...
               </>
             ) : (
               '⚡ Scan Engine'
@@ -250,149 +393,327 @@ export default function Scanner() {
       </div>
 
       {/* Candidate Cards Grid */}
-      {candidates.length === 0 ? (
-        <div className="glass-card p-12 text-center">
-          <p className="text-gray-300 text-lg mb-2 font-semibold">No candidates match the selected filters</p>
-          <p className="text-gray-500 text-sm">
-            Try choosing 'All Setups' or switching between Midcap and Smallcap universes.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {candidates.map((c, idx) => {
-            const capConfig = capBadgeConfig[c.market_cap_tier] || capBadgeConfig['MIDCAP'];
-            const isRsPositive = c.relative_strength_score > 0;
-            return (
-              <div
-                key={c.symbol}
-                className={`glass-card p-5 animate-slide-up transition-all duration-200 hover:-translate-y-1 ${capConfig.glow}`}
-                style={{ animationDelay: `${idx * 40}ms` }}
-              >
-                {/* Top Row: Symbol, Company Name & Score */}
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-lg font-bold text-white tracking-wide">{c.symbol}</h3>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${capConfig.class}`}>
-                        {c.market_cap_tier}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-400 truncate max-w-[210px]">{c.company_name}</p>
-                    <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-0.5">
-                      <span>{c.sector}</span>
-                      <span>•</span>
-                      <span className="font-mono text-gray-400">₹{c.market_cap_cr?.toLocaleString('en-IN')} Cr</span>
-                    </div>
-                  </div>
-                  <ScoreMeter score={c.composite_score} size={56} strokeWidth={4} />
-                </div>
-
-                {/* Setup Type Badge */}
-                <div className="mb-3">
-                  <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-md inline-block ${setupBadgeClass[c.setup_type] || 'badge'}`}>
-                    {setupLabel[c.setup_type] || c.setup_type}
-                  </span>
-                </div>
-
-                {/* Sparkline (20-day trend) */}
-                <div className="mb-4 flex justify-center bg-navy-950/50 py-2 rounded-lg border border-navy-800">
-                  <Sparkline
-                    data={sparklines[c.symbol] || []}
-                    width={220}
-                    height={46}
-                    showDots
-                  />
-                </div>
-
-                {/* Institutional Metrics Grid */}
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  {/* Mansfield RS */}
-                  <div className="p-2 rounded-lg bg-navy-900/60 border border-navy-800">
-                    <div className="flex items-center justify-between text-[10px] text-gray-400 uppercase font-medium">
-                      <span>Mansfield RS</span>
-                      <span className="text-[9px] text-gray-500 font-mono">21D</span>
-                    </div>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className={`text-sm font-bold font-mono ${isRsPositive ? 'text-emerald-400' : 'text-coral-400'}`}>
-                        {isRsPositive ? '+' : ''}{c.relative_strength_score.toFixed(1)}
-                      </span>
-                      <span className="text-[10px] text-gray-500 truncate max-w-[85px] font-mono">
-                        vs {c.rs_benchmark === 'NIFTYSMALLCAP250' ? 'Small 250' : 'Mid 150'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Delivery Multiple & Concentration */}
-                  <div className="p-2 rounded-lg bg-navy-900/60 border border-navy-800">
-                    <div className="flex items-center justify-between text-[10px] text-gray-400 uppercase font-medium">
-                      <span>Delivery Surge</span>
-                      <span className="text-[9px] text-gray-500 font-mono">{c.delivery_pct}%</span>
-                    </div>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-sm font-bold font-mono text-purple-300">
-                        {c.delivery_multiple.toFixed(1)}x SMA
-                      </span>
-                      <span className="text-[10px] text-gray-400 font-mono">
-                        ₹{c.deliverable_value_cr.toFixed(0)}Cr
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 20-Day ADV */}
-                  <div className="p-2 rounded-lg bg-navy-900/60 border border-navy-800">
-                    <p className="text-[10px] text-gray-400 uppercase font-medium">20D ADV</p>
-                    <p className="text-xs font-semibold text-white font-mono mt-1">
-                      {c.adv_20d >= 1000000 ? `${(c.adv_20d / 1000000).toFixed(1)}M` : `${(c.adv_20d / 1000).toFixed(0)}k`} sh
-                    </p>
-                  </div>
-
-                  {/* Daily Turnover */}
-                  <div className="p-2 rounded-lg bg-navy-900/60 border border-navy-800">
-                    <p className="text-[10px] text-gray-400 uppercase font-medium">Turnover</p>
-                    <p className="text-xs font-semibold text-white font-mono mt-1">
-                      ₹{c.turnover_cr.toFixed(1)} Cr
-                    </p>
-                  </div>
-                </div>
-
-                {/* Trade Execution Levels */}
-                <div className="p-2.5 rounded-lg bg-navy-900/40 border border-navy-800/80 mb-3 text-xs">
-                  <div className="flex items-center justify-between mb-1.5 pb-1.5 border-b border-navy-800">
-                    <span className="text-gray-400">Entry / CMP:</span>
-                    <span className="font-mono font-bold text-white">₹{c.entry_price.toFixed(2)}</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
-                    <div>
-                      <p className="text-gray-500">Pivot</p>
-                      <p className="font-mono font-semibold text-electric-300">₹{c.pivot_price.toFixed(0)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Stop Loss</p>
-                      <p className="font-mono font-semibold text-coral-400">₹{c.suggested_stop_loss.toFixed(0)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Target (2.2R)</p>
-                      <p className="font-mono font-semibold text-emerald-400">₹{c.target_price.toFixed(0)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Institutional Rationale */}
-                <p className="text-[11px] text-gray-400 leading-relaxed mb-4 line-clamp-2">
-                  {c.rationale}
-                </p>
-
-                {/* Calculate Position Size Action */}
-                <button
-                  onClick={() => handleSizePosition(c)}
-                  className="w-full btn-primary text-xs py-2 font-semibold flex items-center justify-center gap-2"
+      {isPennyMode ? (
+        pennyCandidates.length === 0 ? (
+          <div className="glass-card p-12 text-center">
+            <p className="text-gray-300 text-lg mb-2 font-semibold">No penny candidates match the active filters</p>
+            <p className="text-gray-500 text-sm">
+              All scrips strictly filtered against GSM/ASM/ESM surveillance, 10%/20% circuit bands, and ₹2.5Cr liquidity gates.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {pennyCandidates.map((c, idx) => {
+              const isLowRisk = c.operator_risk_score < 35;
+              const isModerateRisk = c.operator_risk_score >= 35 && c.operator_risk_score <= 55;
+              return (
+                <div
+                  key={c.symbol}
+                  className="glass-card p-5 animate-slide-up transition-all duration-200 hover:-translate-y-1 border border-yellow-500/30 hover:border-yellow-400/80 hover:shadow-[0_0_30px_rgba(234,179,8,0.15)] bg-gradient-to-b from-navy-900/90 to-navy-950"
+                  style={{ animationDelay: `${idx * 40}ms` }}
                 >
-                  📐 Calculate Position Size
-                </button>
-              </div>
-            );
-          })}
-        </div>
+                  {/* Top Row: Symbol, Exchange & Score */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-lg font-bold text-white tracking-wide">{c.symbol}</h3>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/40">
+                          {c.exchange} PENNY
+                        </span>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          c.price_band_pct === 20.0 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                        }`}>
+                          {c.price_band_pct.toFixed(0)}% Price Band
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 truncate max-w-[210px]">{c.company_name}</p>
+                      <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-0.5">
+                        <span>{c.sector}</span>
+                        <span>•</span>
+                        <span className="font-mono text-gray-400">MCap: ₹{c.market_cap_cr.toFixed(0)} Cr</span>
+                      </div>
+                    </div>
+                    <ScoreMeter score={c.composite_score} size={56} strokeWidth={4} />
+                  </div>
+
+                  {/* Setup Type Badge */}
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-md inline-block ${setupBadgeClass[c.setup_type] || 'badge'}`}>
+                      {setupLabel[c.setup_type] || c.setup_type}
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-navy-800 text-emerald-400 border border-emerald-500/20">
+                      Clean Liquidity
+                    </span>
+                  </div>
+
+                  {/* Operator Risk Score Gauge */}
+                  <div className="mb-3 p-2.5 rounded-lg bg-navy-950/70 border border-navy-800 flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-semibold text-gray-300">Operator Trap Risk:</span>
+                        <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded ${
+                          isLowRisk
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                            : isModerateRisk
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                            : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                        }`}>
+                          {c.risk_classification} ({c.operator_risk_score}/100)
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-gray-500 mt-0.5">
+                        {isLowRisk ? 'Authentic volume footprint; zero pump-and-dump flags' : 'Monitor closely; standard volatility precautions apply'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Microstructure & Liquidity Health Grid */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className="p-2 rounded-lg bg-navy-900/60 border border-navy-800">
+                      <div className="flex items-center justify-between text-[10px] text-gray-400 uppercase font-medium">
+                        <span>Turnover</span>
+                        <span className="text-[9px] text-emerald-400 font-mono">≥ ₹2.5Cr PASS</span>
+                      </div>
+                      <p className="text-xs font-bold text-white font-mono mt-1">
+                        ₹{c.turnover_cr.toFixed(2)} Cr
+                      </p>
+                    </div>
+
+                    <div className="p-2 rounded-lg bg-navy-900/60 border border-navy-800">
+                      <div className="flex items-center justify-between text-[10px] text-gray-400 uppercase font-medium">
+                        <span>Unique Trades</span>
+                        <span className="text-[9px] text-emerald-400 font-mono">≥ 2.5k PASS</span>
+                      </div>
+                      <p className="text-xs font-bold text-white font-mono mt-1">
+                        {c.trade_count.toLocaleString('en-IN')} /day
+                      </p>
+                    </div>
+
+                    <div className="p-2 rounded-lg bg-navy-900/60 border border-navy-800">
+                      <div className="flex items-center justify-between text-[10px] text-gray-400 uppercase font-medium">
+                        <span>Delivery %</span>
+                        <span className="text-[9px] text-gray-500 font-mono">{c.volume_surge_multiple.toFixed(1)}x Vol</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-xs font-bold font-mono text-purple-300">
+                          {c.delivery_pct.toFixed(1)}%
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-mono">
+                          ₹{c.deliverable_value_cr.toFixed(1)}Cr
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-2 rounded-lg bg-navy-900/60 border border-navy-800">
+                      <div className="flex items-center justify-between text-[10px] text-gray-400 uppercase font-medium">
+                        <span>Bid-Ask Spread</span>
+                        <span className="text-[9px] text-emerald-400 font-mono">≤ 0.8% PASS</span>
+                      </div>
+                      <p className="text-xs font-bold text-white font-mono mt-1">
+                        {c.bid_ask_spread_pct.toFixed(2)}%
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Dynamic Sizing & Safety Cap Box */}
+                  <div className="p-2.5 rounded-lg bg-yellow-950/20 border border-yellow-500/30 mb-3 text-xs">
+                    <div className="flex items-center justify-between mb-1 pb-1 border-b border-yellow-500/20">
+                      <span className="text-yellow-300 font-semibold flex items-center gap-1">
+                        <span>🛡️ Safe Dynamic Sizing:</span>
+                      </span>
+                      <span className="font-mono text-yellow-200 font-bold">
+                        {c.max_safe_shares.toLocaleString('en-IN')} shares
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-gray-400">
+                      <span>Capital Cap (2.5% Equity Guard):</span>
+                      <span className="font-mono font-semibold text-white">
+                        ₹{c.max_safe_capital.toLocaleString('en-IN')} ({c.capital_pct}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Trade Execution Levels */}
+                  <div className="p-2.5 rounded-lg bg-navy-900/40 border border-navy-800/80 mb-3 text-xs">
+                    <div className="flex items-center justify-between mb-1.5 pb-1.5 border-b border-navy-800">
+                      <span className="text-gray-400">Entry / CMP:</span>
+                      <span className="font-mono font-bold text-white">₹{c.entry_price.toFixed(2)}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-center text-[11px]">
+                      <div>
+                        <p className="text-gray-500">Tight Stop Loss (6.5%)</p>
+                        <p className="font-mono font-semibold text-coral-400">₹{c.suggested_stop_loss.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Target (2.5R+)</p>
+                        <p className="font-mono font-semibold text-emerald-400">₹{c.target_price.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Circuit Limit Warning */}
+                  <div className="mb-3 px-2.5 py-1.5 rounded-md bg-navy-950/80 border border-navy-800 text-[10px] text-gray-400 flex items-center gap-1.5">
+                    <span className="text-emerald-400">●</span>
+                    <span>{c.circuit_warning}</span>
+                  </div>
+
+                  {/* Size Position Action */}
+                  <button
+                    onClick={() => handleSizePosition(c)}
+                    className="w-full bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-black font-bold text-xs py-2 rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm shadow-yellow-500/20"
+                  >
+                    📐 Size Penny Trade ({c.max_safe_shares.toLocaleString('en-IN')} max)
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )
+      ) : (
+        candidates.length === 0 ? (
+          <div className="glass-card p-12 text-center">
+            <p className="text-gray-300 text-lg mb-2 font-semibold">No candidates match the selected filters</p>
+            <p className="text-gray-500 text-sm">
+              Try choosing 'All Setups' or switching between Midcap and Smallcap universes.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {candidates.map((c, idx) => {
+              const capConfig = capBadgeConfig[c.market_cap_tier] || capBadgeConfig['MIDCAP'];
+              const isRsPositive = c.relative_strength_score > 0;
+              return (
+                <div
+                  key={c.symbol}
+                  className={`glass-card p-5 animate-slide-up transition-all duration-200 hover:-translate-y-1 ${capConfig.glow}`}
+                  style={{ animationDelay: `${idx * 40}ms` }}
+                >
+                  {/* Top Row: Symbol, Company Name & Score */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-lg font-bold text-white tracking-wide">{c.symbol}</h3>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${capConfig.class}`}>
+                          {c.market_cap_tier}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 truncate max-w-[210px]">{c.company_name}</p>
+                      <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-0.5">
+                        <span>{c.sector}</span>
+                        <span>•</span>
+                        <span className="font-mono text-gray-400">₹{c.market_cap_cr?.toLocaleString('en-IN')} Cr</span>
+                      </div>
+                    </div>
+                    <ScoreMeter score={c.composite_score} size={56} strokeWidth={4} />
+                  </div>
+
+                  {/* Setup Type Badge */}
+                  <div className="mb-3">
+                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-md inline-block ${setupBadgeClass[c.setup_type] || 'badge'}`}>
+                      {setupLabel[c.setup_type] || c.setup_type}
+                    </span>
+                  </div>
+
+                  {/* Sparkline (20-day trend) */}
+                  <div className="mb-4 flex justify-center bg-navy-950/50 py-2 rounded-lg border border-navy-800">
+                    <Sparkline
+                      data={sparklines[c.symbol] || []}
+                      width={220}
+                      height={46}
+                      showDots
+                    />
+                  </div>
+
+                  {/* Institutional Metrics Grid */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {/* Mansfield RS */}
+                    <div className="p-2 rounded-lg bg-navy-900/60 border border-navy-800">
+                      <div className="flex items-center justify-between text-[10px] text-gray-400 uppercase font-medium">
+                        <span>Mansfield RS</span>
+                        <span className="text-[9px] text-gray-500 font-mono">21D</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className={`text-sm font-bold font-mono ${isRsPositive ? 'text-emerald-400' : 'text-coral-400'}`}>
+                          {isRsPositive ? '+' : ''}{c.relative_strength_score.toFixed(1)}
+                        </span>
+                        <span className="text-[10px] text-gray-500 truncate max-w-[85px] font-mono">
+                          vs {c.rs_benchmark === 'NIFTYSMALLCAP250' ? 'Small 250' : 'Mid 150'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Delivery Multiple & Concentration */}
+                    <div className="p-2 rounded-lg bg-navy-900/60 border border-navy-800">
+                      <div className="flex items-center justify-between text-[10px] text-gray-400 uppercase font-medium">
+                        <span>Delivery Surge</span>
+                        <span className="text-[9px] text-gray-500 font-mono">{c.delivery_pct}%</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-sm font-bold font-mono text-purple-300">
+                          {c.delivery_multiple.toFixed(1)}x SMA
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-mono">
+                          ₹{c.deliverable_value_cr.toFixed(0)}Cr
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 20-Day ADV */}
+                    <div className="p-2 rounded-lg bg-navy-900/60 border border-navy-800">
+                      <p className="text-[10px] text-gray-400 uppercase font-medium">20D ADV</p>
+                      <p className="text-xs font-semibold text-white font-mono mt-1">
+                        {c.adv_20d >= 1000000 ? `${(c.adv_20d / 1000000).toFixed(1)}M` : `${(c.adv_20d / 1000).toFixed(0)}k`} sh
+                      </p>
+                    </div>
+
+                    {/* Daily Turnover */}
+                    <div className="p-2 rounded-lg bg-navy-900/60 border border-navy-800">
+                      <p className="text-[10px] text-gray-400 uppercase font-medium">Turnover</p>
+                      <p className="text-xs font-semibold text-white font-mono mt-1">
+                        ₹{c.turnover_cr.toFixed(1)} Cr
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Trade Execution Levels */}
+                  <div className="p-2.5 rounded-lg bg-navy-900/40 border border-navy-800/80 mb-3 text-xs">
+                    <div className="flex items-center justify-between mb-1.5 pb-1.5 border-b border-navy-800">
+                      <span className="text-gray-400">Entry / CMP:</span>
+                      <span className="font-mono font-bold text-white">₹{c.entry_price.toFixed(2)}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
+                      <div>
+                        <p className="text-gray-500">Pivot</p>
+                        <p className="font-mono font-semibold text-electric-300">₹{c.pivot_price.toFixed(0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Stop Loss</p>
+                        <p className="font-mono font-semibold text-coral-400">₹{c.suggested_stop_loss.toFixed(0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Target (2.2R)</p>
+                        <p className="font-mono font-semibold text-emerald-400">₹{c.target_price.toFixed(0)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Institutional Rationale */}
+                  <p className="text-[11px] text-gray-400 leading-relaxed mb-4 line-clamp-2">
+                    {c.rationale}
+                  </p>
+
+                  {/* Calculate Position Size Action */}
+                  <button
+                    onClick={() => handleSizePosition(c)}
+                    className="w-full btn-primary text-xs py-2 font-semibold flex items-center justify-center gap-2"
+                  >
+                    📐 Calculate Position Size
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )
       )}
     </div>
   );

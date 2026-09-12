@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db, SessionLocal
 from app.seed import seed_all
-from app.routes import dashboard, screener, portfolio, calculator, journal, mid_small_scanner
+from app.routes import dashboard, screener, portfolio, calculator, journal, mid_small_scanner, penny_scanner
 
 
 @asynccontextmanager
@@ -59,6 +59,7 @@ app.add_middleware(
 app.include_router(dashboard.router)
 app.include_router(screener.router)
 app.include_router(mid_small_scanner.router)
+app.include_router(penny_scanner.router)
 app.include_router(portfolio.router)
 app.include_router(calculator.router)
 app.include_router(journal.router)

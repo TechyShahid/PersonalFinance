@@ -57,6 +57,22 @@ export const midSmallScannerAPI = {
   },
 };
 
+export const pennyScannerAPI = {
+  getPennyCandidates: (params?: {
+    exchange?: string;
+    setup?: string;
+    min_turnover_cr?: number;
+    max_operator_risk?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.exchange) query.set('exchange', params.exchange);
+    if (params?.setup) query.set('setup', params.setup);
+    if (params?.min_turnover_cr !== undefined) query.set('min_turnover_cr', String(params.min_turnover_cr));
+    if (params?.max_operator_risk !== undefined) query.set('max_operator_risk', String(params.max_operator_risk));
+    return fetchAPI<PennySwingCandidate[]>(`/v1/scanner/penny-swing?${query}`);
+  },
+};
+
 // ─── Portfolio ──────────────────────────────────────────────────────────────────
 
 export const portfolioAPI = {
@@ -177,6 +193,35 @@ export interface MidSmallSwingCandidate {
   target_price: number;
   risk_reward_ratio: number;
   asm_gsm_stage: number;
+  rationale: string;
+}
+
+export interface PennySwingCandidate {
+  symbol: string;
+  company_name: string;
+  exchange: string;              // NSE | BSE
+  market_cap_cr: number;
+  sector: string;
+  price_band_pct: number;        // 10.0 | 20.0
+  circuit_status: string;
+  setup_type: string;
+  composite_score: number;
+  operator_risk_score: number;   // 0 - 100
+  risk_classification: string;   // LOW_RISK | MODERATE | ELEVATED
+  entry_price: number;
+  suggested_stop_loss: number;
+  target_price: number;
+  risk_reward_ratio: number;
+  volume_surge_multiple: number;
+  delivery_pct: number;
+  deliverable_value_cr: number;
+  turnover_cr: number;
+  trade_count: number;
+  bid_ask_spread_pct: number;
+  max_safe_shares: number;
+  max_safe_capital: number;
+  capital_pct: number;
+  circuit_warning: string;
   rationale: string;
 }
 
