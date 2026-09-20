@@ -8,7 +8,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db, SessionLocal
 from app.seed import seed_all
-from app.routes import dashboard, screener, portfolio, calculator, journal, mid_small_scanner, penny_scanner
+from app.services.load_stocks import load_stocks_from_excel
+from app.routes import dashboard, screener, portfolio, calculator, journal, mid_small_scanner, penny_scanner, stocks
 
 
 @asynccontextmanager
@@ -20,6 +21,7 @@ async def lifespan(app: FastAPI):
 
     db = SessionLocal()
     try:
+        load_stocks_from_excel(db)
         seed_all(db)
     finally:
         db.close()
@@ -63,6 +65,7 @@ app.include_router(penny_scanner.router)
 app.include_router(portfolio.router)
 app.include_router(calculator.router)
 app.include_router(journal.router)
+app.include_router(stocks.router)
 
 
 @app.get("/api/health")

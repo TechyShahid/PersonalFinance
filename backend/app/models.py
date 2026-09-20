@@ -175,3 +175,21 @@ class FiiDiiData(Base):
     __table_args__ = (
         UniqueConstraint("trade_date", "participant_type", name="uix_fii_dii_date_type"),
     )
+
+
+class Stock(Base):
+    __tablename__ = "stocks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sr_no = Column(Integer, unique=True, index=True, nullable=False)
+    company_name = Column(String(255), nullable=False, index=True)
+    isin = Column(String(50), unique=True, index=True, nullable=False)
+    bse_symbol = Column(String(50), nullable=True, index=True)
+    bse_mcap_cr = Column(Float, nullable=True)
+    nse_symbol = Column(String(50), nullable=True, index=True)
+    nse_mcap_cr = Column(Float, nullable=True)
+    msei_symbol = Column(String(50), nullable=True)
+    msei_mcap_cr = Column(Float, nullable=True)
+    avg_mcap_cr = Column(Float, nullable=True)
+    category = Column(String(50), nullable=True, index=True)  # Large Cap | Mid Cap | Small Cap
+

@@ -319,3 +319,27 @@ class FiiDiiResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ─── Stock Universe Schemas ───────────────────────────────────────────────────
+
+class StockBase(BaseModel):
+    sr_no: int
+    company_name: str
+    isin: str
+    bse_symbol: Optional[str] = None
+    bse_mcap_cr: Optional[float] = None
+    nse_symbol: Optional[str] = None
+    nse_mcap_cr: Optional[float] = None
+    msei_symbol: Optional[str] = None
+    msei_mcap_cr: Optional[float] = None
+    avg_mcap_cr: Optional[float] = None
+    category: Optional[str] = None
+
+
+class StockResponse(StockBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
