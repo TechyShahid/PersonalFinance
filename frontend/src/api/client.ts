@@ -112,6 +112,47 @@ export const symbolsAPI = {
   getAll: () => fetchAPI<{ symbols: string[]; count: number }>('/symbols'),
 };
 
+// ─── New Listings & IPO Tracker ─────────────────────────────────────────────────
+
+export const newListingsAPI = {
+  getAll: (params?: {
+    search?: string;
+    category?: string;
+    timeframe_days?: number;
+    min_return?: number;
+    only_fresh_ipos?: boolean;
+    listing_type?: string;
+    sort_by?: string;
+    order?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.search) query.set('search', params.search);
+    if (params?.category) query.set('category', params.category);
+    if (params?.timeframe_days) query.set('timeframe_days', String(params.timeframe_days));
+    if (params?.min_return !== undefined) query.set('min_return', String(params.min_return));
+    if (params?.only_fresh_ipos !== undefined) query.set('only_fresh_ipos', String(params.only_fresh_ipos));
+    if (params?.listing_type) query.set('listing_type', params.listing_type);
+    if (params?.sort_by) query.set('sort_by', params.sort_by);
+    if (params?.order) query.set('order', params.order);
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    return fetchAPI<NewListingsListResponse>(`/new-listings?${query}`);
+  },
+  getOutperformers: (params?: { tier?: string; include_relisted?: boolean; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.tier) query.set('tier', params.tier);
+    if (params?.include_relisted !== undefined) query.set('include_relisted', String(params.include_relisted));
+    if (params?.limit) query.set('limit', String(params.limit));
+    return fetchAPI<NewlyListedStock[]>(`/new-listings/outperformers?${query}`);
+  },
+  getStats: () => fetchAPI<NewListingsStats>('/new-listings/stats'),
+  refresh: () => fetchAPI<{ status: string; total_listings: number; outperformers_count: number }>('/new-listings/refresh', { method: 'POST' }),
+};
+
+
+
 // ─── Type Definitions ───────────────────────────────────────────────────────────
 
 export interface DashboardSummary {
@@ -361,3 +402,56 @@ export interface JournalStats {
   ltcg_exemption_used: number;
   ltcg_exemption_remaining: number;
 }
+
+export interface NewlyListedStock {
+  id: number;
+  symbol: string;
+  company_name: string;
+  series: string;
+  listing_date: string;
+  days_since_listing: number;
+  category?: string;
+  market_cap_cr?: number;
+  listing_price?: number;
+  current_price?: number;
+  change_pct?: number;
+  return_since_listing_pct?: number;
+  all_time_high?: number;
+  drawdown_from_high_pct?: number;
+  volume?: number;
+  turnover_cr?: number;
+  delivery_pct?: number;
+  performance_rank?: number;
+  is_outperformer: boolean;
+  is_relisted: boolean;
+  listing_type?: 'FRESH_IPO' | 'RE_LISTED';
+  performance_tier?: 'MULTIBAGGER' | 'HIGH_FLYER' | 'OUTPERFORMER' | 'NEUTRAL' | 'LAGGARD';
+}
+
+export interface NewListingsListResponse {
+  items: NewlyListedStock[];
+  total: number;
+  page: number;
+  pages: number;
+  limit: number;
+}
+
+export interface NewListingsStats {
+  total_listings: number;
+  fresh_ipos_count: number;
+  relisted_count: number;
+  outperformers_count: number;
+  outperformers_pct: number;
+  median_return_pct: number;
+  average_return_pct: number;
+  top_performer?: {
+    symbol: string;
+    company_name: string;
+    return_pct: number;
+    current_price?: number;
+    listing_date?: string;
+  };
+  category_breakdown: Record<string, number>;
+}
+
+

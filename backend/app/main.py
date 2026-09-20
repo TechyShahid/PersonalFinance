@@ -9,7 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db, SessionLocal
 from app.seed import seed_all
 from app.services.load_stocks import load_stocks_from_excel
-from app.routes import dashboard, screener, portfolio, calculator, journal, mid_small_scanner, penny_scanner, stocks
+from app.services.listing_tracker import sync_newly_listed_stocks
+from app.routes import dashboard, screener, portfolio, calculator, journal, mid_small_scanner, penny_scanner, stocks, new_listings
 
 
 @asynccontextmanager
@@ -22,9 +23,11 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         load_stocks_from_excel(db)
+        sync_newly_listed_stocks(db)
         seed_all(db)
     finally:
         db.close()
+
 
     print("✅ Application ready at http://localhost:8000")
     print("📚 API Docs at http://localhost:8000/docs")
@@ -66,6 +69,7 @@ app.include_router(portfolio.router)
 app.include_router(calculator.router)
 app.include_router(journal.router)
 app.include_router(stocks.router)
+app.include_router(new_listings.router)
 
 
 @app.get("/api/health")

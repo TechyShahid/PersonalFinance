@@ -193,3 +193,32 @@ class Stock(Base):
     avg_mcap_cr = Column(Float, nullable=True)
     category = Column(String(50), nullable=True, index=True)  # Large Cap | Mid Cap | Small Cap
 
+
+class NewlyListedStock(Base):
+    __tablename__ = "newly_listed_stocks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    symbol = Column(String(20), unique=True, index=True, nullable=False)
+    company_name = Column(String(255), nullable=False, index=True)
+    series = Column(String(10), default="EQ")
+    listing_date = Column(Date, nullable=False, index=True)
+    days_since_listing = Column(Integer, default=0)
+    category = Column(String(50), nullable=True, index=True)  # Large Cap | Mid Cap | Small Cap
+    market_cap_cr = Column(Float, nullable=True)
+    listing_price = Column(Float, nullable=True)
+    current_price = Column(Float, nullable=True)
+    change_pct = Column(Float, nullable=True, default=0.0)
+    return_since_listing_pct = Column(Float, nullable=True, index=True, default=0.0)
+    all_time_high = Column(Float, nullable=True)
+    drawdown_from_high_pct = Column(Float, nullable=True, default=0.0)
+    volume = Column(BigInteger, nullable=True, default=0)
+    turnover_cr = Column(Float, nullable=True, default=0.0)
+    delivery_pct = Column(Float, nullable=True, default=0.0)
+    performance_rank = Column(Integer, nullable=True, index=True)
+    is_outperformer = Column(Boolean, nullable=False, default=False, index=True)
+    is_relisted = Column(Boolean, nullable=False, default=False, index=True)  # True if old company re-listed / cross-listed from BSE
+    listing_type = Column(String(20), default="FRESH_IPO", index=True)  # FRESH_IPO | RE_LISTED
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+

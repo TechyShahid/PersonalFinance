@@ -343,3 +343,47 @@ class StockResponse(StockBase):
     class Config:
         from_attributes = True
 
+
+# ─── Newly Listed Stocks (IPO Tracker) Schemas ────────────────────────────────
+
+class NewlyListedStockResponse(BaseModel):
+    id: int
+    symbol: str
+    company_name: str
+    series: str = "EQ"
+    listing_date: date
+    days_since_listing: int
+    category: Optional[str] = None
+    market_cap_cr: Optional[float] = None
+    listing_price: Optional[float] = None
+    current_price: Optional[float] = None
+    change_pct: Optional[float] = 0.0
+    return_since_listing_pct: Optional[float] = 0.0
+    all_time_high: Optional[float] = None
+    drawdown_from_high_pct: Optional[float] = 0.0
+    volume: Optional[int] = 0
+    turnover_cr: Optional[float] = 0.0
+    delivery_pct: Optional[float] = 0.0
+    performance_rank: Optional[int] = None
+    is_outperformer: bool = False
+    is_relisted: bool = False
+    listing_type: Optional[str] = "FRESH_IPO"  # FRESH_IPO | RE_LISTED
+    performance_tier: Optional[str] = None  # MULTIBAGGER | HIGH_FLYER | OUTPERFORMER | NEUTRAL | LAGGARD
+
+    class Config:
+        from_attributes = True
+
+
+class NewListingsStatsResponse(BaseModel):
+    total_listings: int
+    fresh_ipos_count: int = 0
+    relisted_count: int = 0
+    outperformers_count: int
+    outperformers_pct: float
+    median_return_pct: float
+    average_return_pct: float
+    top_performer: Optional[dict] = None
+    category_breakdown: dict
+
+
+
