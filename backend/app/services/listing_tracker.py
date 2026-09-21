@@ -8,6 +8,7 @@ and identifies top-performing IPOs/new listings (Outperformers).
 import os
 import sys
 import logging
+import concurrent.futures
 from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional, Any
 import numpy as np
@@ -246,6 +247,61 @@ def sync_newly_listed_stocks(db: Session, force_reload: bool = False) -> Dict[st
     }
 
 
+def fetch_single_operating_profit(symbol: str):
+    """Fetch annual Operating Income for a single ticker via yfinance."""
+    try:
+        t = yf.Ticker(f"{symbol}.NS")
+        stmt = t.income_stmt
+        if stmt is not None and not stmt.empty and "Operating Income" in stmt.index:
+            vals = stmt.loc["Operating Income"].dropna()
+            if len(vals) >= 2:
+                cur, prev = float(vals.iloc[0]), float(vals.iloc[1])
+                growth = round(((cur - prev) / abs(prev) * 100.0), 2) if prev != 0 else 0.0
+                return symbol, round(cur / 1e7, 2), round(prev / 1e7, 2), growth, growth > 0
+            elif len(vals) == 1:
+                cur = float(vals.iloc[0])
+                return symbol, round(cur / 1e7, 2), None, None, False
+        return symbol, None, None, None, False
+    except Exception:
+        return symbol, None, None, None, False
+
+
+def sync_operating_profits(db: Session, symbols: Optional[List[str]] = None, max_workers: int = 15) -> dict:
+    """
+    Fetch and update operating profit metrics (latest, previous, YoY growth %, is_op_profit_growing)
+    for newly listed stocks in parallel.
+    """
+    query = db.query(NewlyListedStock)
+    if symbols:
+        query = query.filter(NewlyListedStock.symbol.in_(symbols))
+
+    stocks_to_fetch = [s.symbol for s in query.all()]
+    if not stocks_to_fetch:
+        return {"updated": 0, "growing_count": 0}
+
+    print(f"📈 Fetching annual operating profit data for {len(stocks_to_fetch)} stocks in parallel...")
+    updated_count = 0
+    growing_count = 0
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        results = list(executor.map(fetch_single_operating_profit, stocks_to_fetch))
+
+    for sym, cur_cr, prev_cr, growth, is_growing in results:
+        stock = db.query(NewlyListedStock).filter(NewlyListedStock.symbol == sym).first()
+        if stock:
+            stock.operating_profit_cr = cur_cr
+            stock.prev_operating_profit_cr = prev_cr
+            stock.operating_profit_growth_pct = growth
+            stock.is_op_profit_growing = bool(is_growing)
+            updated_count += 1
+            if is_growing:
+                growing_count += 1
+
+    db.commit()
+    print(f"  ✓ Updated operating profit for {updated_count} stocks ({growing_count} with YoY growth).")
+    return {"updated": updated_count, "growing_count": growing_count}
+
+
 def get_newly_listed_stats(db: Session) -> Dict[str, Any]:
     """Get high-level summary statistics for New Listings Tracker, focused on genuine fresh IPOs."""
     total = db.query(NewlyListedStock).count()
@@ -258,6 +314,8 @@ def get_newly_listed_stats(db: Session) -> Dict[str, Any]:
             "outperformers_pct": 0.0,
             "median_return_pct": 0.0,
             "average_return_pct": 0.0,
+            "op_profit_growing_count": 0,
+            "op_profit_growing_pct": 0.0,
             "top_performer": None,
             "category_breakdown": {},
         }
@@ -275,6 +333,14 @@ def get_newly_listed_stats(db: Session) -> Dict[str, Any]:
     ]
     median_ret = round(float(np.median(fresh_returns)), 2) if fresh_returns else 0.0
     avg_ret = round(float(np.mean(fresh_returns)), 2) if fresh_returns else 0.0
+
+    # Operating profit growing count among fresh IPOs
+    op_growing_count = (
+        db.query(NewlyListedStock)
+        .filter(NewlyListedStock.is_relisted == False, NewlyListedStock.is_op_profit_growing == True)
+        .count()
+    )
+    op_growing_pct = round((op_growing_count / fresh_total) * 100.0, 1) if fresh_total > 0 else 0.0
 
     # Top performer among genuine fresh IPOs
     top_stock = (
@@ -309,6 +375,8 @@ def get_newly_listed_stats(db: Session) -> Dict[str, Any]:
         "outperformers_pct": outperformers_pct,
         "median_return_pct": median_ret,
         "average_return_pct": avg_ret,
+        "op_profit_growing_count": op_growing_count,
+        "op_profit_growing_pct": op_growing_pct,
         "top_performer": top_performer,
         "category_breakdown": cats,
     }

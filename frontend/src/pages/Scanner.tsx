@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Header from '../components/layout/Header';
 import ScoreMeter from '../components/charts/ScoreMeter';
 import Sparkline from '../components/charts/Sparkline';
+import StockChartModal from '../components/charts/StockChartModal';
 import { midSmallScannerAPI, pennyScannerAPI, screenerAPI } from '../api/client';
 import type { MidSmallSwingCandidate, PennySwingCandidate, SparklineData } from '../api/client';
 import { useNavigate } from 'react-router-dom';
@@ -52,6 +53,7 @@ export default function Scanner() {
     sortBy: 'score', // score | rs | delivery | turnover | operator_risk
   });
   const [scanning, setScanning] = useState(false);
+  const [chartStock, setChartStock] = useState<{ symbol: string; company_name?: string; current_price?: number } | null>(null);
   const navigate = useNavigate();
 
   const isPennyMode = filter.capType === 'penny';
@@ -416,7 +418,14 @@ export default function Scanner() {
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-lg font-bold text-white tracking-wide">{c.symbol}</h3>
+                        <button
+                          onClick={() => setChartStock({ symbol: c.symbol, company_name: c.company_name, current_price: c.entry_price })}
+                          className="text-lg font-bold text-white tracking-wide hover:text-electric-400 hover:underline transition flex items-center gap-1.5 group"
+                          title="Click to view chart"
+                        >
+                          <span>{c.symbol}</span>
+                          <span className="text-xs text-electric-400 opacity-70 group-hover:opacity-100 transition">📊</span>
+                        </button>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/40">
                           {c.exchange} PENNY
                         </span>
@@ -557,13 +566,22 @@ export default function Scanner() {
                     <span>{c.circuit_warning}</span>
                   </div>
 
-                  {/* Size Position Action */}
-                  <button
-                    onClick={() => handleSizePosition(c)}
-                    className="w-full bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-black font-bold text-xs py-2 rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm shadow-yellow-500/20"
-                  >
-                    📐 Size Penny Trade ({c.max_safe_shares.toLocaleString('en-IN')} max)
-                  </button>
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setChartStock({ symbol: c.symbol, company_name: c.company_name, current_price: c.entry_price })}
+                      className="px-3 py-2 rounded-lg bg-navy-800 hover:bg-navy-700 text-electric-400 hover:text-white border border-navy-700 font-semibold text-xs flex items-center justify-center gap-1 transition shadow-sm"
+                      title="View Stock Chart"
+                    >
+                      📊 Graph
+                    </button>
+                    <button
+                      onClick={() => handleSizePosition(c)}
+                      className="flex-1 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-black font-bold text-xs py-2 rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm shadow-yellow-500/20"
+                    >
+                      📐 Size ({c.max_safe_shares.toLocaleString('en-IN')} max)
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -592,7 +610,14 @@ export default function Scanner() {
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-lg font-bold text-white tracking-wide">{c.symbol}</h3>
+                        <button
+                          onClick={() => setChartStock({ symbol: c.symbol, company_name: c.company_name, current_price: c.entry_price })}
+                          className="text-lg font-bold text-white tracking-wide hover:text-electric-400 hover:underline transition flex items-center gap-1.5 group"
+                          title="Click to view chart"
+                        >
+                          <span>{c.symbol}</span>
+                          <span className="text-xs text-electric-400 opacity-70 group-hover:opacity-100 transition">📊</span>
+                        </button>
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${capConfig.class}`}>
                           {c.market_cap_tier}
                         </span>
@@ -702,19 +727,35 @@ export default function Scanner() {
                     {c.rationale}
                   </p>
 
-                  {/* Calculate Position Size Action */}
-                  <button
-                    onClick={() => handleSizePosition(c)}
-                    className="w-full btn-primary text-xs py-2 font-semibold flex items-center justify-center gap-2"
-                  >
-                    📐 Calculate Position Size
-                  </button>
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setChartStock({ symbol: c.symbol, company_name: c.company_name, current_price: c.entry_price })}
+                      className="px-3 py-2 rounded-lg bg-navy-800 hover:bg-navy-700 text-electric-400 hover:text-white border border-navy-700 font-semibold text-xs flex items-center justify-center gap-1 transition shadow-sm"
+                      title="View Stock Chart"
+                    >
+                      📊 Graph
+                    </button>
+                    <button
+                      onClick={() => handleSizePosition(c)}
+                      className="flex-1 btn-primary text-xs py-2 font-semibold flex items-center justify-center gap-2"
+                    >
+                      📐 Calculate Position Size
+                    </button>
+                  </div>
                 </div>
               );
             })}
           </div>
         )
       )}
+
+      {/* Interactive Stock Chart Modal */}
+      <StockChartModal
+        isOpen={!!chartStock}
+        onClose={() => setChartStock(null)}
+        stock={chartStock}
+      />
     </div>
   );
 }

@@ -35,7 +35,9 @@ def get_all_new_listings(
     min_return: Optional[float] = Query(default=None, description="Filter by minimum return since listing %"),
     only_fresh_ipos: bool = Query(default=True, description="Filter out old re-listed symbols and show only genuine fresh IPOs"),
     listing_type: Optional[str] = Query(default=None, description="'FRESH_IPO' | 'RE_LISTED' | 'ALL'"),
-    sort_by: str = Query(default="listing_date", description="Sort field: listing_date, return_pct, mcap, price, change"),
+    op_profit_growing: Optional[bool] = Query(default=None, description="Filter for stocks with operating profit increasing from last year (YoY > 0%)"),
+    min_op_profit_growth: Optional[float] = Query(default=None, description="Filter by minimum operating profit growth %"),
+    sort_by: str = Query(default="listing_date", description="Sort field: listing_date, return_pct, mcap, price, change, op_profit_growth"),
     order: str = Query(default="desc", description="Sort direction: asc or desc"),
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=50, ge=1, le=200),
@@ -43,7 +45,7 @@ def get_all_new_listings(
 ):
     """
     SECTION 1: Retrieve all newly listed stocks within the past 1 year (or filtered timeframe)
-    with search, category, fresh IPO filtering, and flexible sorting.
+    with search, category, fresh IPO filtering, operating profit growth, and flexible sorting.
     """
     query = db.query(NewlyListedStock)
 
@@ -55,6 +57,15 @@ def get_all_new_listings(
             query = query.filter(NewlyListedStock.is_relisted == True)
     elif only_fresh_ipos:
         query = query.filter(NewlyListedStock.is_relisted == False)
+
+    # Operating profit growth filter
+    if op_profit_growing is True:
+        query = query.filter(NewlyListedStock.is_op_profit_growing == True)
+    elif op_profit_growing is False:
+        query = query.filter(NewlyListedStock.is_op_profit_growing == False)
+
+    if min_op_profit_growth is not None:
+        query = query.filter(NewlyListedStock.operating_profit_growth_pct >= min_op_profit_growth)
 
     # Timeframe filter
     if timeframe_days and timeframe_days > 0:
@@ -87,6 +98,8 @@ def get_all_new_listings(
         "price": NewlyListedStock.current_price,
         "change": NewlyListedStock.change_pct,
         "rank": NewlyListedStock.performance_rank,
+        "op_profit_growth": NewlyListedStock.operating_profit_growth_pct,
+        "op_profit": NewlyListedStock.operating_profit_cr,
     }
     sort_col = sort_column_map.get(sort_by, NewlyListedStock.listing_date)
     query = query.order_by(desc(sort_col) if order.lower() == "desc" else asc(sort_col))
@@ -108,6 +121,7 @@ def get_all_new_listings(
 def get_outperforming_listings(
     tier: Optional[str] = Query(default=None, description="Tier filter: MULTIBAGGER (>100%), HIGH_FLYER (>50%), OUTPERFORMER (>20%), ALL"),
     include_relisted: bool = Query(default=False, description="Whether to include old re-listed legacy stocks"),
+    op_profit_growing: Optional[bool] = Query(default=None, description="Filter for stocks with operating profit increasing from last year (YoY > 0%)"),
     limit: int = Query(default=25, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
@@ -119,6 +133,11 @@ def get_outperforming_listings(
 
     if not include_relisted:
         query = query.filter(NewlyListedStock.is_relisted == False)
+
+    if op_profit_growing is True:
+        query = query.filter(NewlyListedStock.is_op_profit_growing == True)
+    elif op_profit_growing is False:
+        query = query.filter(NewlyListedStock.is_op_profit_growing == False)
 
     if tier and tier.upper() != "ALL":
         t = tier.upper()
@@ -143,9 +162,11 @@ def get_tracker_stats(db: Session = Depends(get_db)):
 
 def _background_sync():
     from app.database import SessionLocal
+    from app.services.listing_tracker import sync_operating_profits
     bg_db = SessionLocal()
     try:
         sync_newly_listed_stocks(bg_db, force_reload=True)
+        sync_operating_profits(bg_db)
     except Exception as e:
         print(f"Error in background sync: {e}")
     finally:

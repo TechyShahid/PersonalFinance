@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Header from '../components/layout/Header';
+import StockChartModal from '../components/charts/StockChartModal';
 import { portfolioAPI } from '../api/client';
 import type { Holding, Portfolio as PortfolioType, TradeOrder } from '../api/client';
 
@@ -11,6 +12,7 @@ export default function Portfolio() {
   const [portfolios, setPortfolios] = useState<PortfolioType[]>([]);
   const [activeOrders, setActiveOrders] = useState<TradeOrder[]>([]);
   const [activeTab, setActiveTab] = useState<'CORE' | 'SATELLITE'>('CORE');
+  const [chartStock, setChartStock] = useState<{ symbol: string; current_price?: number | null } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -143,10 +145,17 @@ export default function Portfolio() {
                   const isPositive = pnl >= 0;
 
                   return (
-                    <tr key={h.id}>
+                    <tr key={h.id} className="hover:bg-navy-800/40 transition">
                       <td>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-white">{h.symbol}</span>
+                          <button
+                            onClick={() => setChartStock({ symbol: h.symbol, current_price: h.current_price })}
+                            className="font-semibold text-white hover:text-electric-400 hover:underline transition flex items-center gap-1 group"
+                            title="Click to view chart"
+                          >
+                            <span>{h.symbol}</span>
+                            <span className="text-xs text-electric-400 opacity-60 group-hover:opacity-100 transition">📊</span>
+                          </button>
                           <span className="text-[10px] text-gray-500">{h.exchange}</span>
                         </div>
                       </td>
@@ -207,8 +216,17 @@ export default function Portfolio() {
                 </thead>
                 <tbody>
                   {activeOrders.map((o) => (
-                    <tr key={o.id}>
-                      <td className="font-semibold text-white">{o.symbol}</td>
+                    <tr key={o.id} className="hover:bg-navy-800/40 transition">
+                      <td>
+                        <button
+                          onClick={() => setChartStock({ symbol: o.symbol, current_price: o.entry_price })}
+                          className="font-semibold text-white hover:text-electric-400 hover:underline transition flex items-center gap-1 group"
+                          title="Click to view chart"
+                        >
+                          <span>{o.symbol}</span>
+                          <span className="text-xs text-electric-400 opacity-60 group-hover:opacity-100 transition">📊</span>
+                        </button>
+                      </td>
                       <td><span className="badge-open">{o.order_type}</span></td>
                       <td className="font-mono">{o.quantity}</td>
                       <td className="font-mono">₹{o.entry_price.toFixed(2)}</td>
@@ -229,6 +247,13 @@ export default function Portfolio() {
           </div>
         </div>
       )}
+
+      {/* Interactive Stock Chart Modal */}
+      <StockChartModal
+        isOpen={!!chartStock}
+        onClose={() => setChartStock(null)}
+        stock={chartStock}
+      />
     </div>
   );
 }

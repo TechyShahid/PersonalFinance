@@ -79,6 +79,21 @@ def get_stocks_summary(db: Session = Depends(get_db)):
     }
 
 
+from app.services.candle_service import get_stock_candles
+
+
+@router.get("/{symbol}/candles", response_model=dict)
+def get_candles(
+    symbol: str,
+    exchange: str = Query(default="NSE", description="Exchange (NSE or BSE)"),
+    period: str = Query(default="1y", description="Timeframe period (1mo, 3mo, 6mo, 1y, 2y, 5y, max)"),
+    interval: str = Query(default="1d", description="Candle interval (1d, 1wk, 1mo)"),
+    refresh: bool = Query(default=False, description="Force refresh cache"),
+):
+    """Retrieve OHLCV candlestick data with technical indicators (EMA 20, EMA 50, RSI 14)."""
+    return get_stock_candles(symbol=symbol, exchange=exchange, period=period, interval=interval, force_refresh=refresh)
+
+
 @router.get("/{identifier}", response_model=StockResponse)
 def get_stock_by_identifier(identifier: str, db: Session = Depends(get_db)):
     """Retrieve stock details by NSE symbol, BSE symbol, or ISIN."""

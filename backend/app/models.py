@@ -218,6 +218,10 @@ class NewlyListedStock(Base):
     is_outperformer = Column(Boolean, nullable=False, default=False, index=True)
     is_relisted = Column(Boolean, nullable=False, default=False, index=True)  # True if old company re-listed / cross-listed from BSE
     listing_type = Column(String(20), default="FRESH_IPO", index=True)  # FRESH_IPO | RE_LISTED
+    operating_profit_cr = Column(Float, nullable=True)  # Latest annual operating profit in ₹ Cr
+    prev_operating_profit_cr = Column(Float, nullable=True)  # Previous year operating profit in ₹ Cr
+    operating_profit_growth_pct = Column(Float, nullable=True, index=True)  # YoY operating profit growth %
+    is_op_profit_growing = Column(Boolean, nullable=False, default=False, index=True)  # True if growth > 0%
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 

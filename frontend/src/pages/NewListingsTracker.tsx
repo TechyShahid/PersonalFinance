@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { newListingsAPI, type NewlyListedStock, type NewListingsStats } from '../api/client';
+import StockChartModal from '../components/charts/StockChartModal';
 
 type ActiveTab = 'outperformers' | 'all_listings';
 
 export default function NewListingsTracker() {
   // Navigation Menu Tab State
   const [activeTab, setActiveTab] = useState<ActiveTab>('outperformers');
+
+  // Chart Modal State
+  const [chartStock, setChartStock] = useState<NewlyListedStock | null>(null);
 
   // Core Data State
   const [stats, setStats] = useState<NewListingsStats | null>(null);
@@ -33,6 +37,9 @@ export default function NewListingsTracker() {
   // Filter out old re-listed symbols (True by default to show only genuine fresh IPOs)
   const [onlyFreshIpos, setOnlyFreshIpos] = useState<boolean>(true);
 
+  // Filter for stocks whose operating profit is increasing from last year (YoY > 0%)
+  const [onlyOpProfitGrowing, setOnlyOpProfitGrowing] = useState<boolean>(false);
+
 
   // Load initial stats & outperformers
   const loadData = async () => {
@@ -44,6 +51,7 @@ export default function NewListingsTracker() {
         newListingsAPI.getOutperformers({
           tier: outperformerTier,
           include_relisted: !onlyFreshIpos,
+          op_profit_growing: onlyOpProfitGrowing ? true : undefined,
           limit: 100,
         }),
       ]);
@@ -65,6 +73,7 @@ export default function NewListingsTracker() {
         category: selectedCategory !== 'All' ? selectedCategory : undefined,
         timeframe_days: timeframeDays,
         only_fresh_ipos: onlyFreshIpos,
+        op_profit_growing: onlyOpProfitGrowing ? true : undefined,
         sort_by: sortBy,
         order: sortOrder,
         page: currentPage,
@@ -80,15 +89,15 @@ export default function NewListingsTracker() {
     }
   };
 
-  // Initial stats & outperformers on mount, tier change, or fresh IPO toggle
+  // Initial stats & outperformers on mount, tier change, or filter toggles
   useEffect(() => {
     loadData();
-  }, [outperformerTier, onlyFreshIpos]);
+  }, [outperformerTier, onlyFreshIpos, onlyOpProfitGrowing]);
 
-  // Load all stocks on filter/page change or fresh IPO toggle
+  // Load all stocks on filter/page change or toggles
   useEffect(() => {
     loadAllStocks();
-  }, [searchQuery, selectedCategory, timeframeDays, onlyFreshIpos, sortBy, sortOrder, currentPage]);
+  }, [searchQuery, selectedCategory, timeframeDays, onlyFreshIpos, onlyOpProfitGrowing, sortBy, sortOrder, currentPage]);
 
 
   // Manual refresh handler
@@ -169,7 +178,7 @@ export default function NewListingsTracker() {
           </span>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 flex-wrap">
           {/* Fresh IPOs Filter Toggle */}
           <div className="flex items-center gap-1.5 bg-navy-900/90 px-2.5 py-1 rounded-lg border border-navy-700 shadow-sm text-xs">
             <span className="text-[11px] font-medium text-gray-300 flex items-center gap-1">
@@ -193,6 +202,28 @@ export default function NewListingsTracker() {
               {onlyFreshIpos ? 'Filtered' : 'All'}
             </span>
           </div>
+
+          {/* Operating Profit YoY Growing Filter Toggle */}
+          <button
+            type="button"
+            onClick={() => setOnlyOpProfitGrowing(!onlyOpProfitGrowing)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition shadow-sm ${
+              onlyOpProfitGrowing
+                ? 'bg-emerald-600/30 text-emerald-300 border-emerald-500/60 shadow-emerald-500/20 ring-1 ring-emerald-500/40'
+                : 'bg-navy-900/90 text-gray-400 border-navy-700 hover:text-gray-200'
+            }`}
+            title="Filter stocks whose annual operating profit has increased from last year (YoY Growth > 0%)"
+          >
+            <span>📈</span>
+            <span className="whitespace-nowrap">Op. Profit Growing</span>
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                onlyOpProfitGrowing ? 'bg-emerald-500 text-white' : 'bg-navy-800 text-gray-400'
+              }`}
+            >
+              {onlyOpProfitGrowing ? 'Active' : (stats?.op_profit_growing_count ? `${stats.op_profit_growing_count}` : 'YoY')}
+            </span>
+          </button>
 
           <button
             onClick={handleRefresh}
@@ -224,13 +255,29 @@ export default function NewListingsTracker() {
 
           <div className="glass-card px-3 py-1.5 border-l-2 border-l-emerald-500 flex items-center justify-between">
             <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
-              Outperformers (&gt;20%)
+              {onlyOpProfitGrowing ? 'Op. Profit Growing' : 'Outperformers (>20%)'}
             </span>
             <div className="flex items-baseline gap-1">
               <span className="text-sm sm:text-base font-bold text-emerald-400">
-                {stats.outperformers_count}
+                {onlyOpProfitGrowing ? (stats.op_profit_growing_count ?? 0) : stats.outperformers_count}
               </span>
-              <span className="text-[10px] font-semibold text-emerald-400/80">({stats.outperformers_pct}%)</span>
+              <span className="text-[10px] font-semibold text-emerald-400/80">
+                ({onlyOpProfitGrowing ? `${stats.op_profit_growing_pct ?? 0}%` : `${stats.outperformers_pct}%`})
+              </span>
+            </div>
+          </div>
+
+          <div className="glass-card px-3 py-1.5 border-l-2 border-l-teal-500 flex items-center justify-between">
+            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
+              Op. Profit Expansion
+            </span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm sm:text-base font-bold text-teal-300">
+                {stats.op_profit_growing_count ?? 0}
+              </span>
+              <span className="text-[10px] text-teal-400/90 font-medium">
+                ({stats.op_profit_growing_pct ?? 0}% YoY)
+              </span>
             </div>
           </div>
 
@@ -244,20 +291,6 @@ export default function NewListingsTracker() {
               </span>
               <span className="text-[10px] text-purple-400 font-semibold whitespace-nowrap">
                 {stats.top_performer ? `+${stats.top_performer.return_pct.toLocaleString()}%` : ''}
-              </span>
-            </div>
-          </div>
-
-          <div className="glass-card px-3 py-1.5 border-l-2 border-l-amber-500 flex items-center justify-between">
-            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
-              Median / Avg Return
-            </span>
-            <div className="flex items-baseline gap-1">
-              <span className={`text-xs sm:text-sm font-bold ${stats.median_return_pct >= 0 ? 'text-emerald-400' : 'text-coral-400'}`}>
-                {formatReturn(stats.median_return_pct)}
-              </span>
-              <span className="text-[10px] text-gray-500">
-                ({formatReturn(stats.average_return_pct)})
               </span>
             </div>
           </div>
@@ -336,13 +369,18 @@ export default function NewListingsTracker() {
           {outperformers.length >= 3 && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {/* Rank 2 (Silver) */}
-              <div className="glass-card px-3 py-1.5 border border-gray-400/30 bg-navy-800/80 flex items-center justify-between">
+              <div
+                onClick={() => setChartStock(outperformers[1])}
+                className="glass-card px-3 py-1.5 border border-gray-400/30 bg-navy-800/80 flex items-center justify-between cursor-pointer hover:border-gray-300/60 hover:bg-navy-700/60 transition group"
+                title="Click to view chart"
+              >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-base">🥈</span>
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-white truncate">
-                      {outperformers[1].symbol}
-                      <span className="ml-1.5 text-[10px] font-normal text-gray-400">{formatCurrency(outperformers[1].current_price)}</span>
+                    <div className="text-xs font-bold text-white group-hover:text-electric-400 transition truncate flex items-center gap-1">
+                      <span>{outperformers[1].symbol}</span>
+                      <span className="text-[10px] opacity-70">📊</span>
+                      <span className="ml-1 text-[10px] font-normal text-gray-400">{formatCurrency(outperformers[1].current_price)}</span>
                     </div>
                     <div className="text-[10px] text-gray-400 truncate">{outperformers[1].company_name}</div>
                   </div>
@@ -354,13 +392,18 @@ export default function NewListingsTracker() {
               </div>
 
               {/* Rank 1 (Gold) */}
-              <div className="glass-card px-3 py-1.5 border border-amber-400/60 bg-gradient-to-r from-amber-500/15 via-navy-800/90 to-navy-800 flex items-center justify-between shadow-sm">
+              <div
+                onClick={() => setChartStock(outperformers[0])}
+                className="glass-card px-3 py-1.5 border border-amber-400/60 bg-gradient-to-r from-amber-500/15 via-navy-800/90 to-navy-800 flex items-center justify-between shadow-sm cursor-pointer hover:border-amber-300 hover:scale-[1.01] transition group"
+                title="Click to view chart"
+              >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-lg">🥇</span>
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-amber-300 truncate">
-                      {outperformers[0].symbol}
-                      <span className="ml-1.5 text-[10px] font-normal text-gray-300">{formatCurrency(outperformers[0].current_price)}</span>
+                    <div className="text-xs font-bold text-amber-300 group-hover:text-amber-200 transition truncate flex items-center gap-1">
+                      <span>{outperformers[0].symbol}</span>
+                      <span className="text-[10px] opacity-80">📊</span>
+                      <span className="ml-1 text-[10px] font-normal text-gray-300">{formatCurrency(outperformers[0].current_price)}</span>
                     </div>
                     <div className="text-[10px] text-gray-300 truncate">{outperformers[0].company_name}</div>
                   </div>
@@ -372,13 +415,18 @@ export default function NewListingsTracker() {
               </div>
 
               {/* Rank 3 (Bronze) */}
-              <div className="glass-card px-3 py-1.5 border border-amber-700/30 bg-navy-800/80 flex items-center justify-between">
+              <div
+                onClick={() => setChartStock(outperformers[2])}
+                className="glass-card px-3 py-1.5 border border-amber-700/30 bg-navy-800/80 flex items-center justify-between cursor-pointer hover:border-amber-600/60 hover:bg-navy-700/60 transition group"
+                title="Click to view chart"
+              >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-base">🥉</span>
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-white truncate">
-                      {outperformers[2].symbol}
-                      <span className="ml-1.5 text-[10px] font-normal text-gray-400">{formatCurrency(outperformers[2].current_price)}</span>
+                    <div className="text-xs font-bold text-white group-hover:text-electric-400 transition truncate flex items-center gap-1">
+                      <span>{outperformers[2].symbol}</span>
+                      <span className="text-[10px] opacity-70">📊</span>
+                      <span className="ml-1 text-[10px] font-normal text-gray-400">{formatCurrency(outperformers[2].current_price)}</span>
                     </div>
                     <div className="text-[10px] text-gray-400 truncate">{outperformers[2].company_name}</div>
                   </div>
@@ -439,26 +487,34 @@ export default function NewListingsTracker() {
                       <th className="py-2 px-2.5 text-right whitespace-nowrap">Listing Price</th>
                       <th className="py-2 px-2.5 text-right whitespace-nowrap">CMP</th>
                       <th className="py-2 px-2.5 text-right whitespace-nowrap">Return Since Listing</th>
-                      <th className="py-2 px-2.5 text-right whitespace-nowrap">All-Time High</th>
+                      <th className="py-2 px-2.5 text-right whitespace-nowrap">Op. Profit (YoY)</th>
                       <th className="py-2 px-2.5 text-center whitespace-nowrap">Status</th>
+                      <th className="py-2 px-2 text-center whitespace-nowrap">Graph</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-navy-700/50 text-gray-300">
                     {outperformers.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="py-8 text-center text-gray-500">
-                          No outperformers match the selected tier filter.
+                        <td colSpan={10} className="py-8 text-center text-gray-500">
+                          No outperformers match the selected filter.
                         </td>
                       </tr>
                     ) : (
                       outperformers.map((stock, idx) => (
-                        <tr key={stock.id} className="hover:bg-navy-800/50 transition">
+                        <tr
+                          key={stock.id}
+                          onClick={() => setChartStock(stock)}
+                          className="hover:bg-navy-800/80 cursor-pointer transition group"
+                        >
                           <td className="py-1.5 px-2.5 font-mono font-semibold text-gray-400">
                             #{stock.performance_rank || idx + 1}
                           </td>
                           <td className="py-1.5 px-2.5">
                             <div className="font-bold text-white flex items-center gap-1.5 flex-wrap">
-                              <span>{stock.symbol}</span>
+                              <span className="group-hover:text-electric-400 transition flex items-center gap-1">
+                                {stock.symbol}
+                                <span className="opacity-0 group-hover:opacity-100 text-[10px] text-electric-400 transition">↗</span>
+                              </span>
                               {stock.is_relisted ? (
                                 <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                                   Re-listed
@@ -490,11 +546,46 @@ export default function NewListingsTracker() {
                               {formatReturn(stock.return_since_listing_pct)}
                             </span>
                           </td>
-                          <td className="py-1.5 px-2.5 text-right font-mono text-[10px] text-gray-400 whitespace-nowrap">
-                            {formatCurrency(stock.all_time_high)}
+                          <td className="py-1.5 px-2.5 text-right whitespace-nowrap">
+                            {stock.operating_profit_cr !== undefined && stock.operating_profit_cr !== null ? (
+                              <div className="flex flex-col items-end">
+                                <span className="font-mono text-xs text-white">
+                                  ₹{stock.operating_profit_cr.toLocaleString('en-IN')} Cr
+                                </span>
+                                {stock.operating_profit_growth_pct !== undefined && stock.operating_profit_growth_pct !== null ? (
+                                  <span
+                                    className={`inline-flex items-center text-[10px] font-bold px-1 py-0.2 rounded ${
+                                      stock.is_op_profit_growing
+                                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                        : 'bg-coral-500/20 text-coral-300 border border-coral-500/30'
+                                    }`}
+                                  >
+                                    {stock.operating_profit_growth_pct > 0 ? '+' : ''}
+                                    {stock.operating_profit_growth_pct.toFixed(1)}% YoY
+                                  </span>
+                                ) : (
+                                  <span className="text-[9px] text-gray-500">New base</span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-gray-500 text-xs font-mono">—</span>
+                            )}
                           </td>
                           <td className="py-1.5 px-2.5 text-center whitespace-nowrap">
                             {getTierBadge(stock.performance_tier)}
+                          </td>
+                          <td className="py-1.5 px-2 text-center whitespace-nowrap">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setChartStock(stock);
+                              }}
+                              className="px-2 py-0.5 rounded bg-navy-800 hover:bg-electric-500/30 text-electric-400 hover:text-white border border-navy-700 hover:border-electric-500/50 transition font-mono text-[10px] font-semibold inline-flex items-center gap-1 shadow-sm"
+                              title={`Open ${stock.symbol} chart`}
+                            >
+                              <span>📊</span>
+                              <span>Graph</span>
+                            </button>
                           </td>
                         </tr>
                       ))
@@ -601,6 +692,8 @@ export default function NewListingsTracker() {
               >
                 <option value="listing_date">Sort: Listing Date</option>
                 <option value="return_pct">Sort: Return %</option>
+                <option value="op_profit_growth">Sort: Op Profit Growth</option>
+                <option value="op_profit">Sort: Op Profit (₹ Cr)</option>
                 <option value="mcap">Sort: Market Cap</option>
                 <option value="price">Sort: Price</option>
                 <option value="change">Sort: 1D Change</option>
@@ -628,14 +721,15 @@ export default function NewListingsTracker() {
                       <th className="py-2 px-2.5 text-right whitespace-nowrap">Listing Price</th>
                       <th className="py-2 px-2.5 text-right whitespace-nowrap">CMP</th>
                       <th className="py-2 px-2.5 text-right whitespace-nowrap">Return Since Listing</th>
-                      <th className="py-2 px-2.5 text-right whitespace-nowrap">All-Time High</th>
+                      <th className="py-2 px-2.5 text-right whitespace-nowrap">Op. Profit (YoY)</th>
                       <th className="py-2 px-2.5 text-center whitespace-nowrap">Status</th>
+                      <th className="py-2 px-2 text-center whitespace-nowrap">Graph</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-navy-700/50 text-gray-300">
                     {tableLoading ? (
                       <tr>
-                        <td colSpan={9} className="py-12 text-center text-gray-400">
+                        <td colSpan={10} className="py-12 text-center text-gray-400">
                           <div className="flex items-center justify-center gap-2">
                             <div className="w-4 h-4 border-2 border-electric-400 border-t-transparent rounded-full animate-spin" />
                             <span>Loading page results...</span>
@@ -644,7 +738,7 @@ export default function NewListingsTracker() {
                       </tr>
                     ) : allStocks.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="py-10 text-center text-gray-500">
+                        <td colSpan={10} className="py-10 text-center text-gray-500">
                           No newly listed stocks match the selected filters.
                         </td>
                       </tr>
@@ -655,10 +749,17 @@ export default function NewListingsTracker() {
                         const isZero = ret === 0;
 
                         return (
-                          <tr key={stock.id} className="hover:bg-navy-800/50 transition">
+                          <tr
+                            key={stock.id}
+                            onClick={() => setChartStock(stock)}
+                            className="hover:bg-navy-800/80 cursor-pointer transition group"
+                          >
                             <td className="py-1.5 px-2.5 font-mono font-bold text-white whitespace-nowrap">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span>{stock.symbol}</span>
+                                <span className="group-hover:text-electric-400 transition flex items-center gap-1">
+                                  {stock.symbol}
+                                  <span className="opacity-0 group-hover:opacity-100 text-[10px] text-electric-400 transition">↗</span>
+                                </span>
                                 {stock.is_relisted ? (
                                   <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                                     Re-listed
@@ -696,8 +797,30 @@ export default function NewListingsTracker() {
                                 {formatReturn(ret)}
                               </span>
                             </td>
-                            <td className="py-1.5 px-2.5 text-right font-mono text-[10px] text-gray-400 whitespace-nowrap">
-                              {formatCurrency(stock.all_time_high)}
+                            <td className="py-1.5 px-2.5 text-right whitespace-nowrap">
+                              {stock.operating_profit_cr !== undefined && stock.operating_profit_cr !== null ? (
+                                <div className="flex flex-col items-end">
+                                  <span className="font-mono text-xs text-white">
+                                    ₹{stock.operating_profit_cr.toLocaleString('en-IN')} Cr
+                                  </span>
+                                  {stock.operating_profit_growth_pct !== undefined && stock.operating_profit_growth_pct !== null ? (
+                                    <span
+                                      className={`inline-flex items-center text-[10px] font-bold px-1 py-0.2 rounded ${
+                                        stock.is_op_profit_growing
+                                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                          : 'bg-coral-500/20 text-coral-300 border border-coral-500/30'
+                                      }`}
+                                    >
+                                      {stock.operating_profit_growth_pct > 0 ? '+' : ''}
+                                      {stock.operating_profit_growth_pct.toFixed(1)}% YoY
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] text-gray-500">New base</span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-gray-500 text-xs font-mono">—</span>
+                              )}
                             </td>
                             <td className="py-1.5 px-2.5 text-center whitespace-nowrap">
                               {stock.is_outperformer ? (
@@ -709,6 +832,19 @@ export default function NewListingsTracker() {
                                   Listed
                                 </span>
                               )}
+                            </td>
+                            <td className="py-1.5 px-2 text-center whitespace-nowrap">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setChartStock(stock);
+                                }}
+                                className="px-2 py-0.5 rounded bg-navy-800 hover:bg-electric-500/30 text-electric-400 hover:text-white border border-navy-700 hover:border-electric-500/50 transition font-mono text-[10px] font-semibold inline-flex items-center gap-1 shadow-sm"
+                                title={`Open ${stock.symbol} chart`}
+                              >
+                                <span>📊</span>
+                                <span>Graph</span>
+                              </button>
                             </td>
                           </tr>
                         );
@@ -769,6 +905,13 @@ export default function NewListingsTracker() {
           </div>
         </div>
       )}
+
+      {/* Interactive Stock Chart Modal */}
+      <StockChartModal
+        isOpen={!!chartStock}
+        onClose={() => setChartStock(null)}
+        stock={chartStock}
+      />
     </div>
   );
 }

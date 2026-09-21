@@ -112,6 +112,51 @@ export const symbolsAPI = {
   getAll: () => fetchAPI<{ symbols: string[]; count: number }>('/symbols'),
 };
 
+// ─── Stocks & Historical Candles ────────────────────────────────────────────────
+
+export interface CandleData {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  ema20?: number | null;
+  ema50?: number | null;
+  rsi?: number | null;
+}
+
+export interface StockCandlesSummary {
+  current_price: number;
+  previous_close: number;
+  change_pct: number;
+  period_return_pct: number;
+  high_period: number;
+  low_period: number;
+  latest_volume: number;
+  candle_count: number;
+  ticker_used: string;
+}
+
+export interface StockCandlesResponse {
+  symbol: string;
+  exchange: string;
+  period: string;
+  summary: StockCandlesSummary;
+  candles: CandleData[];
+}
+
+export const stocksAPI = {
+  getCandles: (symbol: string, params?: { exchange?: string; period?: string; interval?: string; refresh?: boolean }) => {
+    const query = new URLSearchParams();
+    if (params?.exchange) query.set('exchange', params.exchange);
+    if (params?.period) query.set('period', params.period);
+    if (params?.interval) query.set('interval', params.interval);
+    if (params?.refresh) query.set('refresh', 'true');
+    return fetchAPI<StockCandlesResponse>(`/stocks/${encodeURIComponent(symbol)}/candles?${query}`);
+  },
+};
+
 // ─── New Listings & IPO Tracker ─────────────────────────────────────────────────
 
 export const newListingsAPI = {
@@ -122,6 +167,8 @@ export const newListingsAPI = {
     min_return?: number;
     only_fresh_ipos?: boolean;
     listing_type?: string;
+    op_profit_growing?: boolean;
+    min_op_profit_growth?: number;
     sort_by?: string;
     order?: string;
     page?: number;
@@ -134,16 +181,19 @@ export const newListingsAPI = {
     if (params?.min_return !== undefined) query.set('min_return', String(params.min_return));
     if (params?.only_fresh_ipos !== undefined) query.set('only_fresh_ipos', String(params.only_fresh_ipos));
     if (params?.listing_type) query.set('listing_type', params.listing_type);
+    if (params?.op_profit_growing !== undefined) query.set('op_profit_growing', String(params.op_profit_growing));
+    if (params?.min_op_profit_growth !== undefined) query.set('min_op_profit_growth', String(params.min_op_profit_growth));
     if (params?.sort_by) query.set('sort_by', params.sort_by);
     if (params?.order) query.set('order', params.order);
     if (params?.page) query.set('page', String(params.page));
     if (params?.limit) query.set('limit', String(params.limit));
     return fetchAPI<NewListingsListResponse>(`/new-listings?${query}`);
   },
-  getOutperformers: (params?: { tier?: string; include_relisted?: boolean; limit?: number }) => {
+  getOutperformers: (params?: { tier?: string; include_relisted?: boolean; op_profit_growing?: boolean; limit?: number }) => {
     const query = new URLSearchParams();
     if (params?.tier) query.set('tier', params.tier);
     if (params?.include_relisted !== undefined) query.set('include_relisted', String(params.include_relisted));
+    if (params?.op_profit_growing !== undefined) query.set('op_profit_growing', String(params.op_profit_growing));
     if (params?.limit) query.set('limit', String(params.limit));
     return fetchAPI<NewlyListedStock[]>(`/new-listings/outperformers?${query}`);
   },
@@ -426,6 +476,10 @@ export interface NewlyListedStock {
   is_relisted: boolean;
   listing_type?: 'FRESH_IPO' | 'RE_LISTED';
   performance_tier?: 'MULTIBAGGER' | 'HIGH_FLYER' | 'OUTPERFORMER' | 'NEUTRAL' | 'LAGGARD';
+  operating_profit_cr?: number | null;
+  prev_operating_profit_cr?: number | null;
+  operating_profit_growth_pct?: number | null;
+  is_op_profit_growing?: boolean;
 }
 
 export interface NewListingsListResponse {
@@ -444,6 +498,8 @@ export interface NewListingsStats {
   outperformers_pct: number;
   median_return_pct: number;
   average_return_pct: number;
+  op_profit_growing_count?: number;
+  op_profit_growing_pct?: number;
   top_performer?: {
     symbol: string;
     company_name: string;

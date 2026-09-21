@@ -369,6 +369,10 @@ class NewlyListedStockResponse(BaseModel):
     is_relisted: bool = False
     listing_type: Optional[str] = "FRESH_IPO"  # FRESH_IPO | RE_LISTED
     performance_tier: Optional[str] = None  # MULTIBAGGER | HIGH_FLYER | OUTPERFORMER | NEUTRAL | LAGGARD
+    operating_profit_cr: Optional[float] = None
+    prev_operating_profit_cr: Optional[float] = None
+    operating_profit_growth_pct: Optional[float] = None
+    is_op_profit_growing: bool = False
 
     class Config:
         from_attributes = True
@@ -382,6 +386,8 @@ class NewListingsStatsResponse(BaseModel):
     outperformers_pct: float
     median_return_pct: float
     average_return_pct: float
+    op_profit_growing_count: int = 0
+    op_profit_growing_pct: float = 0.0
     top_performer: Optional[dict] = None
     category_breakdown: dict
 
