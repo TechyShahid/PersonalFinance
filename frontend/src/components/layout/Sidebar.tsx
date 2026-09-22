@@ -5,10 +5,12 @@ const navItems = [
   { path: '/', label: 'Dashboard', icon: '📊' },
   { path: '/new-listings', label: 'New Listings Tracker', icon: '🚀' },
   { path: '/scanner', label: 'Swing Scanner', icon: '🔍' },
+  { path: '/paper-trading', label: 'Paper Trading', icon: '📈' },
   { path: '/calculator', label: 'Position Sizer', icon: '🧮' },
   { path: '/portfolio', label: 'Portfolio', icon: '💼' },
   { path: '/journal', label: 'Trade Journal', icon: '📒' },
 ];
+
 
 export default function Sidebar() {
   const location = useLocation();

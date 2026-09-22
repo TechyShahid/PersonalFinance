@@ -10,7 +10,7 @@ from app.database import init_db, SessionLocal
 from app.seed import seed_all
 from app.services.load_stocks import load_stocks_from_excel
 from app.services.listing_tracker import sync_newly_listed_stocks
-from app.routes import dashboard, screener, portfolio, calculator, journal, mid_small_scanner, penny_scanner, stocks, new_listings
+from app.routes import dashboard, screener, portfolio, calculator, journal, mid_small_scanner, penny_scanner, stocks, new_listings, paper_trading
 
 
 @asynccontextmanager
@@ -25,8 +25,10 @@ async def lifespan(app: FastAPI):
         load_stocks_from_excel(db)
         sync_newly_listed_stocks(db)
         seed_all(db)
+        paper_trading.get_or_create_paper_account(db)
     finally:
         db.close()
+
 
 
     print("✅ Application ready at http://localhost:8000")
@@ -70,6 +72,7 @@ app.include_router(calculator.router)
 app.include_router(journal.router)
 app.include_router(stocks.router)
 app.include_router(new_listings.router)
+app.include_router(paper_trading.router)
 
 
 @app.get("/api/health")

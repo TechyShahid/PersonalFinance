@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   createChart,
+
   CandlestickSeries,
   HistogramSeries,
   LineSeries,
@@ -44,8 +46,10 @@ const TV_GREEN_VOL = 'rgba(8, 153, 129, 0.45)';
 const TV_RED_VOL = 'rgba(242, 54, 69, 0.45)';
 
 export default function StockChartModal({ isOpen, onClose, stock }: StockChartModalProps) {
+  const navigate = useNavigate();
   // Maximize / Fullscreen state
   const [isMaximized, setIsMaximized] = useState(false);
+
 
   // Candle Interval: Daily (Default), Weekly, Monthly
   const [candleInterval, setCandleInterval] = useState<CandleInterval>('1d');
@@ -591,9 +595,23 @@ export default function StockChartModal({ isOpen, onClose, stock }: StockChartMo
               </svg>
             </button>
 
+            {/* Paper Trade Button */}
+            <button
+              onClick={() => {
+                onClose();
+                navigate('/paper-trading');
+              }}
+              className="px-2.5 py-1 bg-gradient-to-r from-electric-500 to-emerald-500 hover:from-electric-600 hover:to-emerald-600 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center gap-1"
+              title="Launch Paper Trading for this stock"
+            >
+              <span>📈</span>
+              <span className="hidden sm:inline">Paper Trade</span>
+            </button>
+
             {/* Maximize / Minimize Button */}
             <button
               onClick={() => setIsMaximized(!isMaximized)}
+
               className="p-1.5 text-gray-400 hover:text-white hover:bg-navy-800 rounded-lg transition"
               title={isMaximized ? "Restore window (F / Esc)" : "Maximize to full screen (F)"}
             >

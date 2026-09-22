@@ -6,6 +6,7 @@ import Calculator from './pages/Calculator';
 import Portfolio from './pages/Portfolio';
 import Journal from './pages/Journal';
 import NewListingsTracker from './pages/NewListingsTracker';
+import PaperTrading from './pages/PaperTrading';
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/new-listings" element={<NewListingsTracker />} />
             <Route path="/scanner" element={<Scanner />} />
+            <Route path="/paper-trading" element={<PaperTrading />} />
             <Route path="/calculator" element={<Calculator />} />
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/journal" element={<Journal />} />
@@ -26,4 +28,5 @@ export default function App() {
     </BrowserRouter>
   );
 }
+
 

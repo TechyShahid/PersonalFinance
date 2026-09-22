@@ -112,6 +112,30 @@ export const symbolsAPI = {
   getAll: () => fetchAPI<{ symbols: string[]; count: number }>('/symbols'),
 };
 
+// ─── Paper Trading ─────────────────────────────────────────────────────────────
+
+export const paperTradingAPI = {
+  getAccount: () => fetchAPI<PaperAccount>('/paper-trading/account'),
+  getPositions: () => fetchAPI<PaperPosition[]>('/paper-trading/positions'),
+  getOrders: () => fetchAPI<PaperOrder[]>('/paper-trading/orders'),
+  getQuote: (symbol: string, exchange = 'NSE') =>
+    fetchAPI<PaperQuote>(`/paper-trading/quote/${symbol}?exchange=${exchange}`),
+  placeOrder: (order: PaperOrderCreate) =>
+    fetchAPI<PaperOrder>('/paper-trading/order', {
+      method: 'POST',
+      body: JSON.stringify(order),
+    }),
+  closePosition: (positionId: number) =>
+    fetchAPI<PaperOrder>(`/paper-trading/close-position/${positionId}`, {
+      method: 'POST',
+    }),
+  resetAccount: () =>
+    fetchAPI<PaperAccount>('/paper-trading/reset', {
+      method: 'POST',
+    }),
+};
+
+
 // ─── Stocks & Historical Candles ────────────────────────────────────────────────
 
 export interface CandleData {
@@ -146,7 +170,36 @@ export interface StockCandlesResponse {
   candles: CandleData[];
 }
 
+export interface StockItem {
+  id: number;
+  sr_no: number;
+  company_name: string;
+  isin: string;
+  bse_symbol?: string | null;
+  bse_mcap_cr?: number | null;
+  nse_symbol?: string | null;
+  nse_mcap_cr?: number | null;
+  avg_mcap_cr?: number | null;
+  category?: string | null;
+}
+
+export interface StockListResponse {
+  items: StockItem[];
+  total: number;
+  page: number;
+  pages: number;
+  limit: number;
+}
+
 export const stocksAPI = {
+  list: (params?: { search?: string; category?: string; page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.search) query.set('search', params.search);
+    if (params?.category) query.set('category', params.category);
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    return fetchAPI<StockListResponse>(`/stocks?${query}`);
+  },
   getCandles: (symbol: string, params?: { exchange?: string; period?: string; interval?: string; refresh?: boolean }) => {
     const query = new URLSearchParams();
     if (params?.exchange) query.set('exchange', params.exchange);
@@ -156,6 +209,7 @@ export const stocksAPI = {
     return fetchAPI<StockCandlesResponse>(`/stocks/${encodeURIComponent(symbol)}/candles?${query}`);
   },
 };
+
 
 // ─── New Listings & IPO Tracker ─────────────────────────────────────────────────
 
@@ -509,5 +563,91 @@ export interface NewListingsStats {
   };
   category_breakdown: Record<string, number>;
 }
+
+// ─── Paper Trading Interfaces ──────────────────────────────────────────────────
+
+export interface PaperPosition {
+  id: number;
+  account_id: number;
+  symbol: string;
+  exchange: string;
+  quantity: number;
+  avg_price: number;
+  current_price: number;
+  invested_value: number;
+  current_value: number;
+  unrealized_pnl: number;
+  unrealized_pnl_pct: number;
+  stop_loss?: number | null;
+  target_price?: number | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaperOrder {
+  id: number;
+  account_id: number;
+  symbol: string;
+  exchange: string;
+  order_side: 'BUY' | 'SELL';
+  order_type: 'MARKET' | 'LIMIT';
+  quantity: number;
+  price: number;
+  stop_loss?: number | null;
+  target_price?: number | null;
+  realized_pnl?: number;
+  pnl_pct?: number;
+  charges?: number;
+  status: string;
+  notes?: string | null;
+  created_at: string;
+}
+
+export interface PaperAccount {
+  id: number;
+  name: string;
+  initial_capital: number;
+  cash_balance: number;
+  invested_capital: number;
+  total_portfolio_value: number;
+  unrealized_pnl: number;
+  unrealized_pnl_pct: number;
+  realized_pnl: number;
+  total_charges_paid: number;
+  net_pnl: number;
+  net_return_pct: number;
+  open_positions_count: number;
+  total_trades_count: number;
+  winning_trades_count: number;
+  losing_trades_count: number;
+  win_rate_pct: number;
+  created_at: string;
+}
+
+export interface PaperQuote {
+  symbol: string;
+  company_name?: string;
+  exchange: string;
+  current_price: number;
+  previous_close?: number;
+  change_pct?: number;
+  high_period?: number;
+  low_period?: number;
+  volume?: number;
+}
+
+export interface PaperOrderCreate {
+  symbol: string;
+  exchange?: string;
+  order_side: 'BUY' | 'SELL';
+  order_type?: 'MARKET' | 'LIMIT';
+  quantity: number;
+  price?: number | null;
+  stop_loss?: number | null;
+  target_price?: number | null;
+  notes?: string | null;
+}
+
 
 

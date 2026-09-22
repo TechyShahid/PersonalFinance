@@ -392,4 +392,99 @@ class NewListingsStatsResponse(BaseModel):
     category_breakdown: dict
 
 
+# ─── Paper Trading Schemas ───────────────────────────────────────────────────────
+
+class PaperPositionResponse(BaseModel):
+    id: int
+    account_id: int
+    symbol: str
+    exchange: str
+    quantity: int
+    avg_price: float
+    current_price: Optional[float] = None
+    invested_value: float
+    current_value: float
+    unrealized_pnl: float
+    unrealized_pnl_pct: float
+    stop_loss: Optional[float] = None
+    target_price: Optional[float] = None
+    notes: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PaperOrderCreate(BaseModel):
+    symbol: str
+    exchange: str = Field(default="NSE", pattern="^(NSE|BSE)$")
+    order_side: str = Field(..., pattern="^(BUY|SELL)$")
+    order_type: str = Field(default="MARKET", pattern="^(MARKET|LIMIT)$")
+    quantity: int = Field(..., gt=0)
+    price: Optional[float] = None  # If not provided, fetched from current market price
+    stop_loss: Optional[float] = None
+    target_price: Optional[float] = None
+    notes: Optional[str] = None
+
+
+class PaperOrderResponse(BaseModel):
+    id: int
+    account_id: int
+    symbol: str
+    exchange: str
+    order_side: str
+    order_type: str
+    quantity: int
+    price: float
+    stop_loss: Optional[float] = None
+    target_price: Optional[float] = None
+    realized_pnl: Optional[float] = 0.0
+    pnl_pct: Optional[float] = 0.0
+    charges: Optional[float] = 0.0
+    status: str
+    notes: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PaperAccountResponse(BaseModel):
+    id: int
+    name: str
+    initial_capital: float
+    cash_balance: float
+    invested_capital: float
+    total_portfolio_value: float
+    unrealized_pnl: float
+    unrealized_pnl_pct: float
+    realized_pnl: float
+    total_charges_paid: float
+    net_pnl: float
+    net_return_pct: float
+    open_positions_count: int
+    total_trades_count: int
+    winning_trades_count: int
+    losing_trades_count: int
+    win_rate_pct: float
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PaperQuoteResponse(BaseModel):
+    symbol: str
+    company_name: Optional[str] = None
+    exchange: str = "NSE"
+    current_price: float
+    previous_close: Optional[float] = None
+    change_pct: Optional[float] = 0.0
+    high_period: Optional[float] = None
+    low_period: Optional[float] = None
+    volume: Optional[int] = 0
+
+
+
 

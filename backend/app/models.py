@@ -225,4 +225,62 @@ class NewlyListedStock(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class PaperAccount(Base):
+    __tablename__ = "paper_accounts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    name = Column(String(100), default="Virtual Trading Account")
+    initial_capital = Column(Float, nullable=False, default=1000000.0)
+    cash_balance = Column(Float, nullable=False, default=1000000.0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    positions = relationship("PaperPosition", back_populates="account", cascade="all, delete-orphan")
+    orders = relationship("PaperOrder", back_populates="account", cascade="all, delete-orphan")
+
+
+class PaperPosition(Base):
+    __tablename__ = "paper_positions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    account_id = Column(Integer, ForeignKey("paper_accounts.id"), nullable=False)
+    symbol = Column(String(20), nullable=False, index=True)
+    exchange = Column(String(10), nullable=False, default="NSE")
+    quantity = Column(Integer, nullable=False)
+    avg_price = Column(Float, nullable=False)
+    current_price = Column(Float, nullable=True)
+    stop_loss = Column(Float, nullable=True)
+    target_price = Column(Float, nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    account = relationship("PaperAccount", back_populates="positions")
+
+
+class PaperOrder(Base):
+    __tablename__ = "paper_orders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    account_id = Column(Integer, ForeignKey("paper_accounts.id"), nullable=False)
+    symbol = Column(String(20), nullable=False, index=True)
+    exchange = Column(String(10), nullable=False, default="NSE")
+    order_side = Column(String(10), nullable=False)  # BUY | SELL
+    order_type = Column(String(10), nullable=False, default="MARKET")  # MARKET | LIMIT
+    quantity = Column(Integer, nullable=False)
+    price = Column(Float, nullable=False)
+    stop_loss = Column(Float, nullable=True)
+    target_price = Column(Float, nullable=True)
+    realized_pnl = Column(Float, nullable=True, default=0.0)
+    pnl_pct = Column(Float, nullable=True, default=0.0)
+    charges = Column(Float, nullable=True, default=0.0)
+    status = Column(String(20), nullable=False, default="EXECUTED")  # EXECUTED | CANCELLED
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    account = relationship("PaperAccount", back_populates="orders")
+
+
+
 
